@@ -1,23 +1,19 @@
 package com.upm.smartroom;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.snackbar.Snackbar;
-
 import com.upm.smartroom.doorbell.DoorbellMsgActivity;
-import com.upm.smartroom.About;
 
-public class MainActivity extends AppCompatActivity {
 
-    public final String LOG_KEY = "SmartRoom Client";
+public class MobilMainActivity extends AppCompatActivity {
 
-    private TextView note;
-    SharedPreferences sharedPrefs;
+    private static final String TAG = MobilMainActivity.class.getSimpleName();
+
 
     public void onCreate(Bundle savedInstanceState) {
         //必须调用一次父类的该方法，因为父类中做了大量的工作

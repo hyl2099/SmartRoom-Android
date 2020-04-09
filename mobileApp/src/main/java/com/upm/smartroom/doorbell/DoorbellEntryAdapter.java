@@ -1,4 +1,4 @@
-package com.upm.smartroom;
+package com.upm.smartroom.doorbell;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -16,6 +16,8 @@ import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.upm.smartroom.GlideApp;
+import com.upm.smartroom.R;
 
 import java.util.ArrayList;
 

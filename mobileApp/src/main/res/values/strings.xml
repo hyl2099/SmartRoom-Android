@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">SmartRoom MobileApp</string>
+
+
+    <string name="opcMessage">See New Message</string>
+    <string name="txtDate">Fichas: </string>
+    <string name="aboutText">About</string>
+    <string name="aboutMessage">This is a Android Things mobil client application.
+        Using this client application you can control iMX7 pico board:
+    1, when someone ring the doorbell, the App will receive a notification with a picture;
+    2, it will get the realtime temperature and humidity of room,
+    3, it can open the door;
+    4, it can switch one the light.
+    Using Google firebase, </string>
+</resources>

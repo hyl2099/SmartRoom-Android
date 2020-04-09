@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/opcMessage"
+        android:title="@string/opcMessage"
+        android:icon="@drawable/message"
+        android:orderInCategory="10"
+        app:showAsAction="ifRoom"
+        />
+
+<!--    <item-->
+<!--        android:id="@+id/opcMejoresResultados"-->
+<!--        android:title="@string/txtOpcionMejoresResultados"-->
+<!--        android:orderInCategory="20"-->
+<!--        />-->
+    <item
+        android:id="@+id/opcAbout"
+        android:title="@string/aboutText"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:orderInCategory="200"
+        />
+
+</menu>

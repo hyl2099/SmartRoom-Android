@@ -1,4 +1,4 @@
-package com.upm.smartroom;
+package com.upm.smartroom.doorbell;
 
 import android.os.Bundle;
 
@@ -6,12 +6,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.upm.smartroom.DoorbellEntryAdapter;
 import com.upm.smartroom.R;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-public class MainActivity extends AppCompatActivity {
+public class DoorbellMsgActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
     private RecyclerView mRecyclerView;
@@ -20,7 +19,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.doorbell_main);
 
         // Reference for doorbell events from embedded device
         //FirebaseDatabase

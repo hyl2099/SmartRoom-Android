@@ -174,6 +174,7 @@ public class DoorbellActivity extends Activity {
             task.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                 @Override
                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                    //获取下载的url，然后存入实时数据库，供客户端访问
                     Task<Uri> firebaseUri = taskSnapshot.getStorage().getDownloadUrl();
                     firebaseUri.addOnSuccessListener(new OnSuccessListener<Uri>() {
                         @Override

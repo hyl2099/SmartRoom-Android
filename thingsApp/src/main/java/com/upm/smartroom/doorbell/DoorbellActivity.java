@@ -1,4 +1,4 @@
-package com.upm.smartroom;
+package com.upm.smartroom.doorbell;
 
 import android.Manifest;
 import android.app.Activity;
@@ -15,9 +15,10 @@ import android.view.KeyEvent;
 import androidx.annotation.NonNull;
 
 import com.google.android.gms.tasks.Task;
+import com.google.android.things.pio.Gpio;
+import com.google.android.things.pio.PeripheralManager;
 import com.upm.smartroom.BoardDefaults;
 import com.upm.smartroom.CloudVisionUtils;
-import com.upm.smartroom.DoorbellCamera;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.things.contrib.driver.button.Button;
@@ -49,6 +50,8 @@ public class DoorbellActivity extends Activity {
      * Driver for the doorbell button;
      */
     private ButtonInputDriver mButtonInputDriver;
+    //LED GPIO06_IO14
+    private Gpio led;
 
     /**
      * A {@link Handler} for running Camera tasks in the background.
@@ -104,7 +107,14 @@ public class DoorbellActivity extends Activity {
     }
 
     private void initPIO() {
+        PeripheralManager pio = PeripheralManager.getInstance();
         try {
+            //LED 灯，接在GPIO6_IO14口。
+            led = pio.openGpio(BoardDefaults.getGPIOForLED());
+            //点亮LED灯
+            led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+
+            //初始化按钮
             mButtonInputDriver = new ButtonInputDriver(
                     BoardDefaults.getGPIOForButton(),
                     Button.LogicState.PRESSED_WHEN_LOW,
@@ -124,6 +134,7 @@ public class DoorbellActivity extends Activity {
         mCameraThread.quitSafely();
         mCloudThread.quitSafely();
         try {
+            led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             mButtonInputDriver.close();
         } catch (IOException e) {
             Log.e(TAG, "button driver error", e);

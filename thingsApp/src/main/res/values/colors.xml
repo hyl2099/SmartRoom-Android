@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#15bf3d</color>
+    <color name="colorPrimary">#363530</color>
     <color name="colorPrimaryDark">#016b03</color>
     <color name="colorAccent">#ff4081</color>
-    <color name="colorSky">#028bc2</color>
+
+    <color name="colorSky">#8ec8fa</color>
+    <color name="colorSkyN">#363530</color>
+    <color name="colorOutside">#abc8f7</color>
+    <color name="colorInside">#fad625</color>
 </resources>

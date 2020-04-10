@@ -1,6 +1,9 @@
-package com.upm.smartroom;
+package com.upm.smartroom.board;
 
 import android.os.Build;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class BoardDefaults {
     private static final String DEVICE_RPI3 = "rpi3";
@@ -25,5 +28,12 @@ public class BoardDefaults {
         return "GPIO6_IO14";
     }
 
-
+    //return RBGLED
+    public static List<String> getGPIOForRGBLED() {
+        List<String> rgb = new ArrayList<>();
+        rgb.add("GPIO2_IO01");//Red
+        rgb.add("GPIO2_IO02");//Green
+        rgb.add("GPIO2_IO00");//Blue
+        return rgb;
+    }
 }

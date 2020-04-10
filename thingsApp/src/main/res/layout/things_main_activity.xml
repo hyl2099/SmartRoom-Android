@@ -3,32 +3,223 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:aandroid="http://schemas.android.com/apk/res-auto"
     tools:context=".ThingsMainActivity">
 
-
-        <ImageView
-            android:id="@+id/weatherImage"
+        <LinearLayout
+            android:id="@+id/weatherTop"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/colorSky"
-            android:src="@drawable/w01d"/>
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/timeTxt"
+                    android:layout_width="0dp"
+                    android:layout_weight="0.3"
+                    android:layout_height="match_parent"
+                    android:background="@color/colorOutside"
+                    android:textSize="20sp"
+                    android:textAlignment="center"
+                    android:gravity="center"
+                    tools:ignore="Suspicious0dp" />
+                <ImageView
+                    android:id="@+id/weatherImage"
+                    android:layout_width="0dp"
+                    android:layout_weight="0.3"
+                    android:layout_height="wrap_content"
+                    android:background="@color/colorSky"
+                    android:layout_marginRight="4dp"
+                    android:layout_marginLeft="4dp"
+                    android:src="@drawable/w01d"/>
+                <TextView
+                    android:id="@+id/otherTxt"
+                    android:layout_width="0dp"
+                    android:layout_weight="0.3"
+                    android:layout_height="match_parent"
+                    android:background="@color/colorOutside"
+                    android:textSize="16sp"
+                    tools:ignore="Suspicious0dp" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="627dp"
-            android:layout_below="@+id/weatherImage"
+            android:layout_below="@+id/weatherTop"
             android:layout_marginTop="4dp"
-            android:orientation="vertical">
+            android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/weatherTxt"
-                    android:layout_width="211dp"
-                    android:layout_height="wrap_content" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="0.5"
+                    android:layout_height="match_parent"
+                    android:layout_below="@+id/weatherImage"
+                    android:background="@color/colorOutside"
+                    android:orientation="vertical">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:text="Weather Outdoor"
+                            android:textSize="14sp"
+                            tools:ignore="Suspicious0dp" />
+                        <TextView
+                            android:id="@+id/weatherTxt"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="20sp"
+                            android:textAlignment="center"
+                            android:layout_marginBottom="2dp"
+                            tools:ignore="Suspicious0dp" />
 
-                <TextView
-                    android:id="@+id/weatherTxtBPM280"
-                    android:layout_width="203dp"
-                    android:layout_height="wrap_content" />
+                        <TextView
+                            android:id="@+id/currTempTxt"
+                            android:layout_width="match_parent"
+                            android:text="Current Temperature"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="14sp"
+                            tools:ignore="Suspicious0dp" />
+                        <TextView
+                            android:id="@+id/currTemp"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="20sp"
+                            android:textAlignment="center"
+                            android:layout_marginBottom="2dp"
+                            tools:ignore="Suspicious0dp" />
+                        <TextView
+                            android:id="@+id/minTempTxt"
+                            android:layout_width="match_parent"
+                            android:text="Minimum Temperature"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="14sp"
+                            tools:ignore="Suspicious0dp" />
+                        <TextView
+                            android:id="@+id/minTemp"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="20sp"
+                            android:textAlignment="center"
+                            android:layout_marginBottom="2dp"
+                            tools:ignore="Suspicious0dp" />
+                        <TextView
+                            android:id="@+id/maxTempTxt"
+                            android:layout_width="match_parent"
+                            android:text="Maximum Temperature"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="14sp"
+                            tools:ignore="Suspicious0dp" />
+                        <TextView
+                            android:id="@+id/maxTemp"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="20sp"
+                            android:textAlignment="center"
+                            android:layout_marginBottom="2dp"
+                            tools:ignore="Suspicious0dp" />
+                        <TextView
+                            android:id="@+id/humidityTxt"
+                            android:layout_width="match_parent"
+                            android:text="Humidity"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="14sp"
+                            tools:ignore="Suspicious0dp" />
+                        <TextView
+                            android:id="@+id/humidity"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="20sp"
+                            android:textAlignment="center"
+                            android:layout_marginBottom="2dp"
+                            tools:ignore="Suspicious0dp" />
+                        <TextView
+                            android:id="@+id/windTxt"
+                            android:layout_width="match_parent"
+                            android:text="Wind Speed"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="14sp"
+                            tools:ignore="Suspicious0dp" />
+                        <TextView
+                            android:id="@+id/wind"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@color/colorOutside"
+                            android:textSize="20sp"
+                            android:textAlignment="center"
+                            tools:ignore="Suspicious0dp" />
+
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="0.5"
+                    android:layout_height="match_parent"
+                    android:layout_below="@+id/weatherImage"
+                    android:background="@color/colorInside"
+                    android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:textSize="16sp"
+                                    android:text="@string/temperature_text" />
+
+                                <TextView
+                                    android:id="@+id/temperatureDisplay"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="center"
+                                    android:text="-"
+                                    android:textSize="24sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:textSize="16sp"
+                                    android:text="@string/barometer_text" />
+
+                                <TextView
+                                    android:id="@+id/barometerDisplay"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="center"
+                                    android:text="-"
+                                    android:textSize="24sp" />
+                        </LinearLayout>
+                        <ImageView
+                            android:id="@+id/imageView"
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:src="@drawable/ic_cloudy" />
+                        </LinearLayout>
 
         </LinearLayout>
 

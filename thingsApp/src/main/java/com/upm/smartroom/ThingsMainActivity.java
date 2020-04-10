@@ -1,8 +1,11 @@
 package com.upm.smartroom;
 
 import android.Manifest;
-import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.media.Image;
 import android.media.ImageReader;
 import android.net.Uri;
@@ -41,11 +44,13 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.things.contrib.driver.bmx280.Bmx280SensorDriver;
+import com.upm.smartroom.board.BoardDefaults;
+import com.upm.smartroom.board.BoardSpec;
 import com.upm.smartroom.doorbell.DoorbellActivity;
 import com.upm.smartroom.doorbell.DoorbellCamera;
 import com.upm.smartroom.weather.Weather;
@@ -62,9 +67,23 @@ public class ThingsMainActivity extends AppCompatActivity {
     private static final String LOG_TAG = DoorbellActivity.class.getSimpleName();
 
 
-
-    private TextView weatherTxt;
+    //data from API
     private ImageView weatherImage;
+    private TextView weatherTxt;
+    private TextView currTemp;
+    private TextView minTemp;
+    private TextView maxTemp;
+    private TextView humidity;
+    private TextView wind;
+    //data from sensor
+//    private TextView bmp280Txt;
+    private ImageView bmp280Image;
+    private TextView temperatureDisplay;
+    private TextView barometerDisplay;
+    private TextView timeTxt;
+    private TextView otherTxt;
+
+
 
 
     // btb Firebase database variables
@@ -84,8 +103,21 @@ public class ThingsMainActivity extends AppCompatActivity {
     private ButtonInputDriver mButtonInputDriver;
     //LED GPIO06_IO14
     private Gpio led;
+    //Red GPIO2_IO01//Green GPIO2_IO02//Blue GPIO2_IO00
+    private List<Gpio> rgbLed;
     //BMP280 for temperature and humidity
+    private SensorManager mSensorManager;
     private Bmx280SensorDriver mEnvironmentalSensorDriver;
+    private float mLastTemperature;
+    private float mLastPressure;
+    private static final float BAROMETER_RANGE_LOW = 965.f;
+    private static final float BAROMETER_RANGE_HIGH = 1035.f;
+    private static final float BAROMETER_RANGE_SUNNY = 1010.f;
+    private static final float BAROMETER_RANGE_RAINY = 990.f;
+    private static final int MSG_UPDATE_BAROMETER_UI = 4;
+    private static final int MSG_UPDATE_TEMPERATURE = 5;
+    private static final int MSG_UPDATE_BAROMETER = 6;
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
     //electric switch
 
     //electronic lock
@@ -116,6 +148,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     //handler
     public Handler mHandler;
     class Mhandler extends Handler {
+        private int mBarometerImage = -1;
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -123,7 +156,27 @@ public class ThingsMainActivity extends AppCompatActivity {
                     obtenerInfo(findViewById(R.id.weatherTxt));
                     break;
                 case 2:
-                    //obtenerInfo(findViewById(R.id.tvRespuesta));
+                    myTimer(findViewById(R.id.timeTxt));
+                    break;
+                case MSG_UPDATE_BAROMETER_UI:
+                    int img;
+                    if (mLastPressure > BAROMETER_RANGE_SUNNY) {
+                        img = R.drawable.ic_sunny;
+                    } else if (mLastPressure < BAROMETER_RANGE_RAINY) {
+                        img = R.drawable.ic_rainy;
+                    } else {
+                        img = R.drawable.ic_cloudy;
+                    }
+                    if (img != mBarometerImage) {
+                        bmp280Image.setImageResource(img);
+                        mBarometerImage = img;
+                    }
+                    break;
+                case MSG_UPDATE_TEMPERATURE:
+                    temperatureDisplay.setText(DECIMAL_FORMAT.format(mLastTemperature));
+                    break;
+                case MSG_UPDATE_BAROMETER:
+                    barometerDisplay.setText(DECIMAL_FORMAT.format(mLastPressure*0.1));
                     break;
             }
         }
@@ -143,10 +196,82 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         }
     }
+    class MyTimerThread implements Runnable {
+        public void run() {
+            while (!Thread.currentThread().isInterrupted()) {
+                Message message = new Message();
+                message.what = 2;
+                mHandler.sendMessage(message);
+                try {
+                    Thread.sleep(1000);
+                }
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+    }
+
+    // Callback used when we register the BMP280 sensor driver with the system's SensorManager.
+    private SensorManager.DynamicSensorCallback mDynamicSensorCallback
+            = new SensorManager.DynamicSensorCallback() {
+        @Override
+        public void onDynamicSensorConnected(Sensor sensor) {
+            if (sensor.getType() == Sensor.TYPE_AMBIENT_TEMPERATURE) {
+                // Our sensor is connected. Start receiving temperature data.
+                mSensorManager.registerListener(mTemperatureListener, sensor,
+                        SensorManager.SENSOR_DELAY_NORMAL);
+                //if (mPubsubPublisher != null) {
+                //    mSensorManager.registerListener(mPubsubPublisher.getTemperatureListener(), sensor,
+                //            SensorManager.SENSOR_DELAY_NORMAL);
+                //}
+            } else if (sensor.getType() == Sensor.TYPE_PRESSURE) {
+                // Our sensor is connected. Start receiving pressure data.
+                mSensorManager.registerListener(mPressureListener, sensor,
+                        SensorManager.SENSOR_DELAY_NORMAL);
+                //if (mPubsubPublisher != null) {
+                //    mSensorManager.registerListener(mPubsubPublisher.getPressureListener(), sensor,
+                //            SensorManager.SENSOR_DELAY_NORMAL);
+                //}
+            }
+        }
+        @Override
+        public void onDynamicSensorDisconnected(Sensor sensor) {
+            super.onDynamicSensorDisconnected(sensor);
+        }
+    };
+
+    // Callback when SensorManager delivers temperature data.
+    private SensorEventListener mTemperatureListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            mLastTemperature = event.values[0];
+            Log.d(TAG, "温度反馈: " + mLastTemperature+"℃");
+            updateTemperatureDisplay(mLastTemperature);
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            Log.d(TAG, "accuracy changed: " + accuracy);
+        }
+    };
+
+    // Callback when SensorManager delivers pressure data.
+    private SensorEventListener mPressureListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            mLastPressure = event.values[0];
+            Log.d(TAG, "气压反馈: " + mLastPressure*0.1 +"kPa");
+            updateBarometerDisplay(mLastPressure);
+            updateBarometer(mLastPressure);
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            Log.d(TAG, "accuracy changed: " + accuracy);
+        }
+    };
 
 
-
-
+    //////////////////////oncreate///////////
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -157,6 +282,20 @@ public class ThingsMainActivity extends AppCompatActivity {
         weatherTxt = (TextView) findViewById(R.id.weatherTxt);
         weatherTxt.setText("");
         weatherImage = findViewById(R.id.weatherImage);
+        bmp280Image = (ImageView) findViewById(R.id.imageView);
+        temperatureDisplay = (TextView) findViewById(R.id.temperatureDisplay);
+        barometerDisplay = (TextView) findViewById(R.id.barometerDisplay);
+        timeTxt = (TextView) findViewById(R.id.timeTxt);
+        otherTxt = (TextView) findViewById(R.id.otherTxt);
+
+        currTemp = (TextView) findViewById(R.id.currTemp);
+        minTemp = (TextView) findViewById(R.id.minTemp);
+        maxTemp = (TextView) findViewById(R.id.maxTemp);
+        humidity = (TextView) findViewById(R.id.humidity);
+        wind = (TextView) findViewById(R.id.wind);
+
+        temperatureDisplay = (TextView) findViewById(R.id.temperatureDisplay);
+        barometerDisplay = (TextView) findViewById(R.id.barometerDisplay);
 
 
         // We need permission to access the camera
@@ -186,6 +325,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         //线程3，显示实时温度，湿度数据
         mHandler = new Mhandler();
         new Thread(new MyThread()).start();
+        new Thread(new MyTimerThread()).start();
 
         // Initialize the doorbell button driver
         initPIO();
@@ -206,14 +346,29 @@ public class ThingsMainActivity extends AppCompatActivity {
     ///////////////end of onCreate()///////////////////
 
     private void initPIO() {
-        PeripheralManager pio = PeripheralManager.getInstance();
         try {
             //LED 灯，接在GPIO6_IO14口。
+            PeripheralManager pio = PeripheralManager.getInstance();
             led = pio.openGpio(BoardDefaults.getGPIOForLED());
+//            rgbLed.set(0, pio.openGpio(BoardDefaults.getGPIOForRGBLED().get(0)));
+//            rgbLed.set(1, pio.openGpio(BoardDefaults.getGPIOForRGBLED().get(1)));
+//            rgbLed.set(2, pio.openGpio(BoardDefaults.getGPIOForRGBLED().get(2)));
             //点亮LED灯
             led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+//            rgbLed.get(0).setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+//            rgbLed.get(1).setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+//            rgbLed.get(2).setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             //初始化 BMP280Sensor
-
+            mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
+            try {
+                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
+                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
+                mEnvironmentalSensorDriver.registerTemperatureSensor();
+                mEnvironmentalSensorDriver.registerPressureSensor();
+                Log.d(TAG, "Initialized I2C BMP280");
+            } catch (IOException e) {
+                throw new RuntimeException("Error initializing BMP280", e);
+            }
             //初始化speaker(Zumbado)
 
             //初始化electronic lock
@@ -248,6 +403,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         }
     }
 
+    ////按按钮后的响应
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_ENTER) {
@@ -341,7 +497,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         });
     }
 
-    //initial menu
+    ////initial menu
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
@@ -361,9 +517,22 @@ public class ThingsMainActivity extends AppCompatActivity {
     }
 
 
-    //click button to get info
+    public void myTimer(final View v) {
+        timeTxt.setText("");
+        SimpleDateFormat sdf = new SimpleDateFormat();// 格式化时间
+        sdf.applyPattern("yyyy-MM-dd HH:mm:ss a");// a为am/pm的标记
+        Date date = new Date();// 获取当前时间
+        timeTxt.append(sdf.format(date)+"\n\n");
+    }
+
+    ////////////get info from weather API
     public void obtenerInfo(final View v) {
         weatherTxt.setText("");
+        currTemp.setText("");
+        minTemp.setText("");
+        maxTemp.setText("");
+        humidity.setText("");
+        wind.setText("");
         Call<Weather> call_async = apiService.getTempByCityName();
         Log.i(LOG_TAG, "getTempByCityName:" + apiService.getTempByCityName());
         // Asíncrona
@@ -376,20 +545,15 @@ public class ThingsMainActivity extends AppCompatActivity {
                 if (null != weather) {
                     Log.i(LOG_TAG, "getWeatherInfo:" + weather);
 
-                    SimpleDateFormat sdf = new SimpleDateFormat();// 格式化时间
-                    weatherTxt.append("Weather Outside:  "  + "\n\n");
-                    sdf.applyPattern("yyyy-MM-dd HH:mm:ss a");// a为am/pm的标记
-                    Date date = new Date();// 获取当前时间
-                    weatherTxt.append(sdf.format(date)+"\n\n");
 
-                    weatherTxt.append(weather.getWeather().get(0).getMain()+"\n\n");
-                    weatherTxt.append(weather.getWeather().get(0).getDescription()+"\n\n");
+                    weatherTxt.append(weather.getWeather().get(0).getMain()+"   (");
+                    weatherTxt.append(weather.getWeather().get(0).getDescription()+ ")");
                     DecimalFormat df = new DecimalFormat("#.0");
-                    weatherTxt.append("Current Temperature: "+df.format(weather.getMain().getTemp()-273.15)+"\n\n");
-                    weatherTxt.append("Minimum Temperature: "+df.format(weather.getMain().getTemp_min()-273.15)+"\n\n");
-                    weatherTxt.append("Maximum Temperature: "+df.format(weather.getMain().getTemp_max()-273.15)+"\n\n");
-                    weatherTxt.append("Humidity: "+weather.getMain().getHumidity().toString()+"\n\n");
-                    weatherTxt.append("Wind Speed: "+weather.getWind().getSpeed().toString()+"\n\n");
+                    currTemp.append(df.format(weather.getMain().getTemp()-273.15));
+                    minTemp.append(df.format(weather.getMain().getTemp_min()-273.15));
+                    maxTemp.append(df.format(weather.getMain().getTemp_max()-273.15));
+                    humidity.append(weather.getMain().getHumidity().toString());
+                    wind.append(weather.getWind().getSpeed().toString());
 
                     String icon = weather.getWeather().get(0).getIcon();
                     if (icon.contains("01d")){
@@ -408,8 +572,48 @@ public class ThingsMainActivity extends AppCompatActivity {
                         weatherImage.setImageResource(R.drawable.w11d);
                     } else if (icon.contains("13d")){
                         weatherImage.setImageResource(R.drawable.w13d);
+                    } else if (icon.contains("01n")){
+                        timeTxt.setBackgroundColor(R.color.colorSkyN);
+                        otherTxt.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setImageResource(R.drawable.w01n);
+                    }else if (icon.contains("02n")){
+                        timeTxt.setBackgroundColor(R.color.colorSkyN);
+                        otherTxt.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setImageResource(R.drawable.w02n);
+                    }else if (icon.contains("03n")){
+                        timeTxt.setBackgroundColor(R.color.colorSkyN);
+                        otherTxt.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setImageResource(R.drawable.w03n);
+                    }else if (icon.contains("04n")) {
+                        timeTxt.setBackgroundColor(R.color.colorSkyN);
+                        otherTxt.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setImageResource(R.drawable.w04n);
+                    }else if (icon.contains("09n")){
+                        timeTxt.setBackgroundColor(R.color.colorSkyN);
+                        otherTxt.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setImageResource(R.drawable.w09n);
+                    }else if (icon.contains("10n")){
+                        timeTxt.setBackgroundColor(R.color.colorSkyN);
+                        otherTxt.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setImageResource(R.drawable.w10n);
+                    }else if (icon.contains("11n")){
+                        timeTxt.setBackgroundColor(R.color.colorSkyN);
+                        otherTxt.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setImageResource(R.drawable.w11n);
+                    } else if (icon.contains("13n")){
+                        timeTxt.setBackgroundColor(R.color.colorSkyN);
+                        otherTxt.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setBackgroundColor(R.color.colorSkyN);
+                        weatherImage.setImageResource(R.drawable.w13n);
                     } else {
-                        weatherImage.setImageResource(R.drawable.w01d);
+                        weatherImage.setImageResource(R.drawable.w01n);
                     }
                 } else {
                     Log.i(LOG_TAG, "no data from external API.");
@@ -428,5 +632,27 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         });
     }
+    ///////get info from weather API
 
+    ////////////BPM280 sensor
+    private void updateBarometerDisplay(float pressure) {
+        // Update UI.
+        if (!mHandler.hasMessages(MSG_UPDATE_BAROMETER)) {
+            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER, 500);
+        }
+    }
+    private void updateTemperatureDisplay(float pressure) {
+        // Update UI.
+        if (!mHandler.hasMessages(MSG_UPDATE_TEMPERATURE)) {
+            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_TEMPERATURE, 500);
+        }
+    }
+
+    private void updateBarometer(float pressure) {
+        // Update UI.
+        if (!mHandler.hasMessages(MSG_UPDATE_BAROMETER_UI)) {
+            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER_UI, 500);
+        }
+    }
+    /////////////BPM280 sensor
 }

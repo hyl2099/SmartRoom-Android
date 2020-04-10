@@ -17,7 +17,7 @@ import androidx.annotation.NonNull;
 import com.google.android.gms.tasks.Task;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManager;
-import com.upm.smartroom.BoardDefaults;
+import com.upm.smartroom.board.BoardDefaults;
 import com.upm.smartroom.CloudVisionUtils;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;

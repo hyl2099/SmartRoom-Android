@@ -1,6 +1,7 @@
 package com.upm.smartroom;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.Image;
 import android.media.ImageReader;
@@ -8,10 +9,19 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Message;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.things.pio.Gpio;
@@ -29,19 +39,44 @@ import com.google.firebase.storage.UploadTask;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.Map;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.things.contrib.driver.bmx280.Bmx280SensorDriver;
 import com.upm.smartroom.doorbell.DoorbellActivity;
 import com.upm.smartroom.doorbell.DoorbellCamera;
+import com.upm.smartroom.weather.Weather;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 
 public class ThingsMainActivity extends AppCompatActivity {
     private static final String TAG = DoorbellActivity.class.getSimpleName();
+    private static final String LOG_TAG = DoorbellActivity.class.getSimpleName();
 
-    private FirebaseDatabase mDatabase;
+
+
+    private TextView weatherTxt;
+    private ImageView weatherImage;
+
+
+    // btb Firebase database variables
+    private FirebaseDatabase mFirebaseDatabase;
     private FirebaseStorage mStorage;
+
+
     private DoorbellCamera mCamera;
+
+    //weather API
+    private static final String WEATHER_API_BASE_URL = "https://api.openweathermap.org";
+    private WeatherRESTAPIService apiService;
 
     /**
      * Driver for the doorbell button;
@@ -76,11 +111,53 @@ public class ThingsMainActivity extends AppCompatActivity {
      */
     private HandlerThread mCloudThread;
 
+
+    //定义我的handler
+    //handler
+    public Handler mHandler;
+    class Mhandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case 1:
+                    obtenerInfo(findViewById(R.id.weatherTxt));
+                    break;
+                case 2:
+                    //obtenerInfo(findViewById(R.id.tvRespuesta));
+                    break;
+            }
+        }
+    }
+    class MyThread implements Runnable {
+        public void run() {
+            while (!Thread.currentThread().isInterrupted()) {
+                Message message = new Message();
+                message.what = 1;
+                mHandler.sendMessage(message);
+                try {
+                    Thread.sleep(10000);
+                }
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+    }
+
+
+
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.things_main_activity);
         Log.d(TAG, "iMX7 Android Things Main Activity created.");
+
+        //定义Homepage视图
+        weatherTxt = (TextView) findViewById(R.id.weatherTxt);
+        weatherTxt.setText("");
+        weatherImage = findViewById(R.id.weatherImage);
+
 
         // We need permission to access the camera
         if (checkSelfPermission(Manifest.permission.CAMERA)
@@ -90,8 +167,9 @@ public class ThingsMainActivity extends AppCompatActivity {
             return;
         }
 
-        //Google Firebase database
-        mDatabase = FirebaseDatabase.getInstance();
+
+        // btb Get instance of Firebase database
+        mFirebaseDatabase = FirebaseDatabase.getInstance();
         mStorage = FirebaseStorage.getInstance();
 
         // Creates new handlers and associated threads for camera and networking operations.
@@ -106,14 +184,26 @@ public class ThingsMainActivity extends AppCompatActivity {
         mCloudHandler = new Handler(mCloudThread.getLooper());
 
         //线程3，显示实时温度，湿度数据
+        mHandler = new Mhandler();
+        new Thread(new MyThread()).start();
 
         // Initialize the doorbell button driver
         initPIO();
+        //initialize API
+        // btb added for retrofit for weather API
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(WEATHER_API_BASE_URL).addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        //API
+        apiService = retrofit.create(WeatherRESTAPIService.class);
 
         // Initialize Camera
         mCamera = DoorbellCamera.getInstance();
         mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
+
     }
+    ///////////////end of onCreate()///////////////////
 
     private void initPIO() {
         PeripheralManager pio = PeripheralManager.getInstance();
@@ -122,15 +212,13 @@ public class ThingsMainActivity extends AppCompatActivity {
             led = pio.openGpio(BoardDefaults.getGPIOForLED());
             //点亮LED灯
             led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
-
+            //初始化 BMP280Sensor
 
             //初始化speaker(Zumbado)
 
             //初始化electronic lock
 
             //初始化electric switch
-
-
 
 
 
@@ -150,7 +238,6 @@ public class ThingsMainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         mCamera.shutDown();
-
         mCameraThread.quitSafely();
         mCloudThread.quitSafely();
         try {
@@ -196,7 +283,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     private void onPictureTaken(final byte[] imageBytes) {
         if (imageBytes != null) {
             //将log存在firebase 实时数据库
-            final DatabaseReference log = mDatabase.getReference("logs").push();
+            final DatabaseReference log = mFirebaseDatabase.getReference("logs").push();
             //image存入storage
             final StorageReference imageRef = mStorage.getReference().child(log.getKey());
 
@@ -253,4 +340,93 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         });
     }
+
+    //initial menu
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.sign_out_menu:
+                //sign out
+
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
+    //click button to get info
+    public void obtenerInfo(final View v) {
+        weatherTxt.setText("");
+        Call<Weather> call_async = apiService.getTempByCityName();
+        Log.i(LOG_TAG, "getTempByCityName:" + apiService.getTempByCityName());
+        // Asíncrona
+        call_async.enqueue(new Callback<Weather>() {
+            @Override
+            public void onResponse(Call<Weather> call, Response<Weather> response) {
+                Weather weather = response.body();
+                Log.i(LOG_TAG, "weather:" + weather);
+                int dataListNum = 0;
+                if (null != weather) {
+                    Log.i(LOG_TAG, "getWeatherInfo:" + weather);
+
+                    SimpleDateFormat sdf = new SimpleDateFormat();// 格式化时间
+                    weatherTxt.append("Weather Outside:  "  + "\n\n");
+                    sdf.applyPattern("yyyy-MM-dd HH:mm:ss a");// a为am/pm的标记
+                    Date date = new Date();// 获取当前时间
+                    weatherTxt.append(sdf.format(date)+"\n\n");
+
+                    weatherTxt.append(weather.getWeather().get(0).getMain()+"\n\n");
+                    weatherTxt.append(weather.getWeather().get(0).getDescription()+"\n\n");
+                    DecimalFormat df = new DecimalFormat("#.0");
+                    weatherTxt.append("Current Temperature: "+df.format(weather.getMain().getTemp()-273.15)+"\n\n");
+                    weatherTxt.append("Minimum Temperature: "+df.format(weather.getMain().getTemp_min()-273.15)+"\n\n");
+                    weatherTxt.append("Maximum Temperature: "+df.format(weather.getMain().getTemp_max()-273.15)+"\n\n");
+                    weatherTxt.append("Humidity: "+weather.getMain().getHumidity().toString()+"\n\n");
+                    weatherTxt.append("Wind Speed: "+weather.getWind().getSpeed().toString()+"\n\n");
+
+                    String icon = weather.getWeather().get(0).getIcon();
+                    if (icon.contains("01d")){
+                        weatherImage.setImageResource(R.drawable.w01d);
+                    }else if (icon.contains("02d")){
+                        weatherImage.setImageResource(R.drawable.w02d);
+                    }else if (icon.contains("03d")){
+                        weatherImage.setImageResource(R.drawable.w03d);
+                    }else if (icon.contains("04d")) {
+                        weatherImage.setImageResource(R.drawable.w04d);
+                    }else if (icon.contains("09d")){
+                        weatherImage.setImageResource(R.drawable.w09d);
+                    }else if (icon.contains("10d")){
+                        weatherImage.setImageResource(R.drawable.w10d);
+                    }else if (icon.contains("11d")){
+                        weatherImage.setImageResource(R.drawable.w11d);
+                    } else if (icon.contains("13d")){
+                        weatherImage.setImageResource(R.drawable.w13d);
+                    } else {
+                        weatherImage.setImageResource(R.drawable.w01d);
+                    }
+                } else {
+                    Log.i(LOG_TAG, "no data from external API.");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Weather> call, Throwable t) {
+                Toast.makeText(
+                        getApplicationContext(),
+                        "ERROR: " + t.getMessage(),
+                        Toast.LENGTH_LONG
+                ).show();
+                Log.e(LOG_TAG, t.getMessage());
+
+            }
+        });
+    }
+
 }

@@ -23,6 +23,15 @@ public class BoardDefaults {
         }
     }
 
+    public static String getGPIOForAlarmButton() {
+        switch (Build.DEVICE) {
+            case DEVICE_IMX7D_PICO:
+                return "GPIO2_IO07";
+            default:
+                throw new IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE);
+        }
+    }
+
     //return LED
     public static String getGPIOForLED() {
         return "GPIO6_IO14";

@@ -105,6 +105,11 @@ public class ThingsMainActivity extends AppCompatActivity {
      * Driver for the doorbell button;
      */
     private ButtonInputDriver mButtonInputDriver;
+    //GPIO2_IO07
+    private ButtonInputDriver mButtonAlarmInputDriver;
+    private int alarmState;
+    private static final int ALARMON = 1;
+    private static final int ALARMOFF = 0;
     //LED GPIO06_IO14
     private Gpio led;
     //Red GPIO2_IO01//Green GPIO2_IO02//Blue GPIO2_IO00
@@ -360,7 +365,9 @@ public class ThingsMainActivity extends AppCompatActivity {
         mHandler = new Mhandler();
         new Thread(new MyThread()).start();
         new Thread(new MyTimerThread()).start();
-        somethingIsMoving = NOTHING_MOVING;
+//        somethingIsMoving = NOTHING_MOVING;
+        somethingIsMoving = SOMETHING_MOVING;
+        alarmState = ALARMOFF;
         new Thread(new MyBuzzerThread()).start();
 
         // Initialize the doorbell button driver
@@ -425,9 +432,15 @@ public class ThingsMainActivity extends AppCompatActivity {
                     Button.LogicState.PRESSED_WHEN_LOW,
                     KeyEvent.KEYCODE_ENTER);
             mButtonInputDriver.register();
-
+            //初始化alarm按钮。
+            mButtonAlarmInputDriver = new ButtonInputDriver(
+                    BoardDefaults.getGPIOForAlarmButton(),
+                    Button.LogicState.PRESSED_WHEN_LOW,
+                    KeyEvent.KEYCODE_0);
+            mButtonAlarmInputDriver.register();
         } catch (IOException e) {
             mButtonInputDriver = null;
+            mButtonAlarmInputDriver = null;
             Log.w(TAG, "Could not open GPIO pins", e);
         }
     }
@@ -445,6 +458,7 @@ public class ThingsMainActivity extends AppCompatActivity {
             buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             buzzerSpeaker.close();
             mButtonInputDriver.close();
+            mButtonAlarmInputDriver.close();
             if (speaker!=null) speaker.close();
         } catch (IOException e) {
             Log.e(TAG, "button driver error", e);
@@ -455,6 +469,14 @@ public class ThingsMainActivity extends AppCompatActivity {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_ENTER) {
             Log.d(TAG, "button pressed now");
+            try {
+                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+                buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else if (keyCode == KeyEvent.KEYCODE_0) {
+            Log.d(TAG, "Alarm pressed now!!!");
             try {
                 led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
                 buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
@@ -478,6 +500,20 @@ public class ThingsMainActivity extends AppCompatActivity {
                 buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             } catch (IOException e) {
                 e.printStackTrace();
+            }
+            return true;
+        }else if (keyCode == KeyEvent.KEYCODE_0) {
+            Log.d(TAG, "Alarm button pressed!!!");
+            try {
+                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+                buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if(alarmState == ALARMOFF){
+                alarmState = ALARMON;
+            }else {
+                alarmState = ALARMOFF;
             }
             return true;
         }
@@ -730,11 +766,14 @@ public class ThingsMainActivity extends AppCompatActivity {
 
     private void startBuzzerAlarm() throws IOException {
         stopBuzzer();
-        if(somethingIsMoving == SOMETHING_MOVING){
-            try {
-                startBuzzer();
-            } catch (IOException e) {
-                e.printStackTrace();
+        if(alarmState == ALARMON){
+            if(somethingIsMoving == SOMETHING_MOVING){
+                Log.d(TAG, "Alarm State ON!!!");
+                try {
+                    startBuzzer();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

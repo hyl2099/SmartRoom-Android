@@ -138,7 +138,6 @@ public class DoorbellCamera {
             Log.e(TAG, "Cannot capture image. Camera not initialized.");
             return;
         }
-
         // Here, we create a CameraCaptureSession for capturing still images.
         try {
             mCameraDevice.createCaptureSession(

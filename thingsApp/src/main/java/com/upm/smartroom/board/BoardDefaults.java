@@ -36,4 +36,9 @@ public class BoardDefaults {
         rgb.add("GPIO2_IO00");//Blue
         return rgb;
     }
+
+    //return LED
+    public static String getGPIOForBuzzer() {
+        return "GPIO6_IO15";
+    }
 }

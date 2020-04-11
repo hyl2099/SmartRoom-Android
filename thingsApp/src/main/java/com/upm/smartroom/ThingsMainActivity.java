@@ -122,6 +122,14 @@ public class ThingsMainActivity extends AppCompatActivity {
     private static final int MSG_UPDATE_TEMPERATURE = 5;
     private static final int MSG_UPDATE_BAROMETER = 6;
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
+    //speaker: active buzzer arduino
+    private Speaker speaker;
+    private Gpio buzzerSpeaker;
+    Blink blinkBuzzerSpeaker;
+    //detect something moving
+    private int somethingIsMoving;
+    private  static final int SOMETHING_MOVING = 1;
+    private  static final int NOTHING_MOVING = 0;
     //electric switch
 
     //electronic lock
@@ -161,6 +169,13 @@ public class ThingsMainActivity extends AppCompatActivity {
                     break;
                 case 2:
                     myTimer(findViewById(R.id.timeTxt));
+                    break;
+                case 3:
+                    try {
+                        startBuzzerAlarm();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     break;
                 case MSG_UPDATE_BAROMETER_UI:
                     int img;
@@ -216,6 +231,20 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         }
     }
+    class MyBuzzerThread implements Runnable {
+        public void run() {
+            while (!Thread.currentThread().isInterrupted()) {
+                Message message = new Message();
+                message.what = 3;
+                mHandler.sendMessage(message);
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
     // Callback used when we register the BMP280 sensor driver with the system's SensorManager.
     private SensorManager.DynamicSensorCallback mDynamicSensorCallback
@@ -251,7 +280,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         @Override
         public void onSensorChanged(SensorEvent event) {
             mLastTemperature = event.values[0];
-            Log.d(TAG, "温度反馈: " + mLastTemperature+"℃");
+            //Log.d(TAG, "温度反馈: " + mLastTemperature+"℃");
             updateTemperatureDisplay(mLastTemperature);
         }
         @Override
@@ -265,7 +294,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         @Override
         public void onSensorChanged(SensorEvent event) {
             mLastPressure = event.values[0];
-            Log.d(TAG, "气压反馈: " + mLastPressure*0.1 +"kPa");
+            //Log.d(TAG, "气压反馈: " + mLastPressure*0.1 +"kPa");
             updateBarometerDisplay(mLastPressure);
             updateBarometer(mLastPressure);
         }
@@ -331,6 +360,8 @@ public class ThingsMainActivity extends AppCompatActivity {
         mHandler = new Mhandler();
         new Thread(new MyThread()).start();
         new Thread(new MyTimerThread()).start();
+        somethingIsMoving = NOTHING_MOVING;
+        new Thread(new MyBuzzerThread()).start();
 
         // Initialize the doorbell button driver
         initPIO();
@@ -355,14 +386,17 @@ public class ThingsMainActivity extends AppCompatActivity {
             //LED 灯，接在GPIO6_IO14口。
             PeripheralManager pio = PeripheralManager.getInstance();
             led = pio.openGpio(BoardDefaults.getGPIOForLED());
-//            rgbLed.set(0, pio.openGpio(BoardDefaults.getGPIOForRGBLED().get(0)));
-//            rgbLed.set(1, pio.openGpio(BoardDefaults.getGPIOForRGBLED().get(1)));
-//            rgbLed.set(2, pio.openGpio(BoardDefaults.getGPIOForRGBLED().get(2)));
-            //点亮LED灯
-            led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
-//            rgbLed.get(0).setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-//            rgbLed.get(1).setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-//            rgbLed.get(2).setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            PeripheralManager rgbLedPioR = PeripheralManager.getInstance();
+            PeripheralManager rgbLedPioG = PeripheralManager.getInstance();
+            PeripheralManager rgbLedPioB = PeripheralManager.getInstance();
+//            rgbLed.set(0, rgbLedPioR.openGpio(BoardDefaults.getGPIOForRGBLED().get(0)));
+//            rgbLed.set(1, rgbLedPioG.openGpio(BoardDefaults.getGPIOForRGBLED().get(1)));
+//            rgbLed.set(2, rgbLedPioB.openGpio(BoardDefaults.getGPIOForRGBLED().get(2)));
+            //开机不点亮LED灯
+            led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+//            rgbLed.get(0).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+//            rgbLed.get(1).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+//            rgbLed.get(2).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
             //初始化 BMP280Sensor
             mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
             try {
@@ -374,8 +408,11 @@ public class ThingsMainActivity extends AppCompatActivity {
             } catch (IOException e) {
                 throw new RuntimeException("Error initializing BMP280", e);
             }
-            //初始化speaker(Zumbado)
-
+            //初始化buzzerSpeaker(Zumbado)
+            PeripheralManager buzzerPio = PeripheralManager.getInstance();
+            buzzerSpeaker = buzzerPio.openGpio(BoardDefaults.getGPIOForBuzzer());
+            buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            //speaker.play(5);
             //初始化electronic lock
 
             //初始化electric switch
@@ -388,6 +425,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                     Button.LogicState.PRESSED_WHEN_LOW,
                     KeyEvent.KEYCODE_ENTER);
             mButtonInputDriver.register();
+
         } catch (IOException e) {
             mButtonInputDriver = null;
             Log.w(TAG, "Could not open GPIO pins", e);
@@ -400,12 +438,31 @@ public class ThingsMainActivity extends AppCompatActivity {
         mCamera.shutDown();
         mCameraThread.quitSafely();
         mCloudThread.quitSafely();
+
         try {
             led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            led.close();
+            buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            buzzerSpeaker.close();
             mButtonInputDriver.close();
+            if (speaker!=null) speaker.close();
         } catch (IOException e) {
             Log.e(TAG, "button driver error", e);
         }
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_ENTER) {
+            Log.d(TAG, "button pressed now");
+            try {
+                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+                buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     ////按按钮后的响应
@@ -415,11 +472,19 @@ public class ThingsMainActivity extends AppCompatActivity {
             // Doorbell rang!
             Log.d(TAG, "button pressed");
             mCamera.takePicture();
+            //speaker.play(5);
+            try {
+                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+                buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return true;
         }
         return super.onKeyUp(keyCode, event);
     }
 
+    /////////////////////////摄像头代码////////////////
     /**
      * Listener for new camera images.
      */
@@ -501,6 +566,7 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         });
     }
+    /////////////////////摄像头代码////////////////
 
     ////initial menu
     @Override
@@ -560,7 +626,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                     humidity.append(weather.getMain().getHumidity().toString());
                     wind.append(weather.getWind().getSpeed().toString());
 
-                    //show icon of weather:
+                    /////////////////show icon of weather:
                     String icon = weather.getWeather().get(0).getIcon();
                     if (icon.contains("01d")){
                         weatherImage.setImageResource(R.drawable.w01d);
@@ -644,21 +710,38 @@ public class ThingsMainActivity extends AppCompatActivity {
     private void updateBarometerDisplay(float pressure) {
         // Update UI.
         if (!mHandler.hasMessages(MSG_UPDATE_BAROMETER)) {
-            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER, 500);
+            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER, 5000);
         }
     }
     private void updateTemperatureDisplay(float pressure) {
         // Update UI.
         if (!mHandler.hasMessages(MSG_UPDATE_TEMPERATURE)) {
-            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_TEMPERATURE, 500);
+            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_TEMPERATURE, 5000);
         }
     }
 
     private void updateBarometer(float pressure) {
         // Update UI.
         if (!mHandler.hasMessages(MSG_UPDATE_BAROMETER_UI)) {
-            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER_UI, 500);
+            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER_UI, 5000);
         }
     }
     /////////////BPM280 sensor
+
+    private void startBuzzerAlarm() throws IOException {
+        stopBuzzer();
+        if(somethingIsMoving == SOMETHING_MOVING){
+            try {
+                startBuzzer();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    private void startBuzzer() throws IOException {
+        buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+    }
+    private void stopBuzzer() throws IOException {
+        buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+    }
 }

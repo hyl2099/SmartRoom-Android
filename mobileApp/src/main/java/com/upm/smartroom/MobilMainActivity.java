@@ -2,20 +2,28 @@ package com.upm.smartroom;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.CompoundButton;
 import android.widget.Switch;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
 import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,13 +35,31 @@ public class MobilMainActivity extends AppCompatActivity {
     private Switch lockSwitcher;
     private Switch switchSwitcher;
 
+    private TextView temperatureDisplay;
+    private TextView barometerDisplay;
+
     // btb Firebase database variables
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mAlarmDatabaseReference;
     private DatabaseReference mLockDatabaseReference;
     private DatabaseReference mSwitchDatabaseReference;
+    private DatabaseReference mRoomTempDatabaseReference;
     private FirebaseStorage mStorage;
     private ChildEventListener mChildEventAlarmListener;
+    private ChildEventListener mChildEventLockListener;
+    private ChildEventListener mChildEventSwitchListener;
+    private ChildEventListener mChildEventRoomTempListener;
+
+    private int alarmState;
+    private static final int ALARMON = 1;
+    private static final int ALARMOFF = 0;
+    private int switchState;
+    private static final int SWITCHON = 1;
+    private static final int SWITCHOFF = 0;
+    private int lockState;
+    private static final int LOCKON = 1;
+    private static final int LOCKOFF = 0;
+
 
     public void onCreate(Bundle savedInstanceState) {
         //必须调用一次父类的该方法，因为父类中做了大量的工作
@@ -47,6 +73,13 @@ public class MobilMainActivity extends AppCompatActivity {
         mAlarmDatabaseReference = mFirebaseDatabase.getReference().child("alarmState");
         mLockDatabaseReference = mFirebaseDatabase.getReference().child("lockState");
         mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("switchState");
+        mRoomTempDatabaseReference = mFirebaseDatabase.getReference().child("roomTemperature");
+        //
+        temperatureDisplay = (TextView) findViewById(R.id.temperatureDisplay);
+        temperatureDisplay.setText("-");
+        barometerDisplay = (TextView) findViewById(R.id.barometerDisplay);
+        barometerDisplay.setText("-");
+
         alarmSwitcher = (Switch)findViewById(R.id.alarmSwitch);
         lockSwitcher = (Switch)findViewById(R.id.lockSwitch);
         switchSwitcher = (Switch)findViewById(R.id.switchSwitcher);
@@ -99,6 +132,102 @@ public class MobilMainActivity extends AppCompatActivity {
             }
         });
 
+
+
+        // btb Listener will be called when changes were performed in DB
+        //监听实时数据库中alarm开关变化
+        mChildEventAlarmListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                // Deserialize data from DB into our AlarmState object
+            }
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                //if alarm state in real time database changed, change alarmState in iMX7.
+                String rtAlarmState = (String) dataSnapshot.getValue();
+                if(rtAlarmState.equals("1")){
+                    alarmState = ALARMON;
+                    alarmSwitcher.setChecked(true);
+                }else if(rtAlarmState.equals("0")){
+                    alarmState = ALARMOFF;
+                    alarmSwitcher.setChecked(false);
+                }
+            }
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        };
+        mAlarmDatabaseReference.addChildEventListener(mChildEventAlarmListener);
+
+        mChildEventLockListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                //if alarm state in real time database changed, change alarmState in iMX7.
+                String rtLockState = (String) dataSnapshot.getValue();
+                if(rtLockState.equals("1")){
+                    lockState = LOCKON;
+                    lockSwitcher.setChecked(true);
+                }else if(rtLockState.equals("0")){
+                    lockState = LOCKOFF;
+                    lockSwitcher.setChecked(false);
+                }
+            }
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        };
+        mLockDatabaseReference.addChildEventListener(mChildEventLockListener);
+        mChildEventSwitchListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                //if alarm state in real time database changed, change alarmState in iMX7.
+                String rtSwitchState = (String) dataSnapshot.getValue();
+                if(rtSwitchState.equals("1")){
+                    switchState = SWITCHON;
+                    switchSwitcher.setChecked(true);
+                }else if(rtSwitchState.equals("0")){
+                    switchState = SWITCHOFF;
+                    switchSwitcher.setChecked(false);
+                }
+            }
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        };
+        mSwitchDatabaseReference.addChildEventListener(mChildEventSwitchListener);
+
+        mChildEventRoomTempListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                //if alarm state in real time database changed, change alarmState in iMX7.
+                RoomTemperature rtSwitchState = dataSnapshot.getValue(RoomTemperature.class);
+                temperatureDisplay.setText((int) rtSwitchState.getmLastPressure());
+                barometerDisplay.setText((int) rtSwitchState.getmLastPressure());
+            }
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        };
+        mRoomTempDatabaseReference.addChildEventListener(mChildEventRoomTempListener);
+
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -126,6 +255,4 @@ public class MobilMainActivity extends AppCompatActivity {
         }
         return true;
     }
-
-
 }

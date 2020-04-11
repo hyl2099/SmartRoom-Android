@@ -107,7 +107,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     private DatabaseReference mAlarmDatabaseReference;
     private DatabaseReference mLockDatabaseReference;
     private DatabaseReference mSwitchDatabaseReference;
-    private DatabaseReference mRommTempDatabaseReference;
+    private DatabaseReference mRoomTempDatabaseReference;
     private FirebaseStorage mStorage;
     private ChildEventListener mChildEventAlarmListener;
     private ChildEventListener mChildEventLockListener;
@@ -210,6 +210,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                     break;
+                    //4
                 case MSG_UPDATE_BAROMETER_UI:
                     int img;
                     if (mLastPressure > BAROMETER_RANGE_SUNNY) {
@@ -224,11 +225,19 @@ public class ThingsMainActivity extends AppCompatActivity {
                         mBarometerImage = img;
                     }
                     break;
+                    //5
                 case MSG_UPDATE_TEMPERATURE:
                     temperatureDisplay.setText(DECIMAL_FORMAT.format(mLastTemperature));
+                    Map<String, Object> childTemperatureUpdates = new HashMap<>();
+                    childTemperatureUpdates.put("mLastTemperature", mLastTemperature);
+                    mRoomTempDatabaseReference.updateChildren(childTemperatureUpdates);
                     break;
+                    //6
                 case MSG_UPDATE_BAROMETER:
                     barometerDisplay.setText(DECIMAL_FORMAT.format(mLastPressure*0.1));
+                    Map<String, Object> childPressureUpdates = new HashMap<>();
+                    childPressureUpdates.put("mLastPressure", mLastPressure);
+                    mRoomTempDatabaseReference.updateChildren(childPressureUpdates);
                     break;
             }
         }
@@ -402,9 +411,9 @@ public class ThingsMainActivity extends AppCompatActivity {
         SwitchState nowSwitchState = new SwitchState("0");
         mSwitchDatabaseReference.setValue(nowSwitchState);
 
-        mRommTempDatabaseReference = mFirebaseDatabase.getReference().child("roomTemperature");
+        mRoomTempDatabaseReference = mFirebaseDatabase.getReference().child("roomTemperature");
         RoomTemperature nowRoomTemperature = new RoomTemperature(mLastTemperature, mLastPressure);
-        mRommTempDatabaseReference.setValue(nowRoomTemperature);
+        mRoomTempDatabaseReference.setValue(nowRoomTemperature);
 
         // Creates new handlers and associated threads for camera and networking operations.
         //线程1，camera
@@ -523,9 +532,9 @@ public class ThingsMainActivity extends AppCompatActivity {
             //LED 灯，接在GPIO6_IO14口。
             PeripheralManager pio = PeripheralManager.getInstance();
             led = pio.openGpio(BoardDefaults.getGPIOForLED());
-            PeripheralManager rgbLedPioR = PeripheralManager.getInstance();
-            PeripheralManager rgbLedPioG = PeripheralManager.getInstance();
-            PeripheralManager rgbLedPioB = PeripheralManager.getInstance();
+//            PeripheralManager rgbLedPioR = PeripheralManager.getInstance();
+//            PeripheralManager rgbLedPioG = PeripheralManager.getInstance();
+//            PeripheralManager rgbLedPioB = PeripheralManager.getInstance();
 //            rgbLed.set(0, rgbLedPioR.openGpio(BoardDefaults.getGPIOForRGBLED().get(0)));
 //            rgbLed.set(1, rgbLedPioG.openGpio(BoardDefaults.getGPIOForRGBLED().get(1)));
 //            rgbLed.set(2, rgbLedPioB.openGpio(BoardDefaults.getGPIOForRGBLED().get(2)));
@@ -534,17 +543,17 @@ public class ThingsMainActivity extends AppCompatActivity {
 //            rgbLed.get(0).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
 //            rgbLed.get(1).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
 //            rgbLed.get(2).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
-            //初始化 BMP280Sensor
-//            mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
-//            try {
-//                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
-//                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
-//                mEnvironmentalSensorDriver.registerTemperatureSensor();
-//                mEnvironmentalSensorDriver.registerPressureSensor();
-//                Log.d(TAG, "Initialized I2C BMP280");
-//            } catch (IOException e) {
-//                throw new RuntimeException("Error initializing BMP280", e);
-//            }
+//            初始化 BMP280Sensor
+            mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
+            try {
+                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
+                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
+                mEnvironmentalSensorDriver.registerTemperatureSensor();
+                mEnvironmentalSensorDriver.registerPressureSensor();
+                Log.d(TAG, "Initialized I2C BMP280");
+            } catch (IOException e) {
+                throw new RuntimeException("Error initializing BMP280", e);
+            }
             //初始化buzzerSpeaker(Zumbado)
             PeripheralManager buzzerPio = PeripheralManager.getInstance();
             buzzerSpeaker = buzzerPio.openGpio(BoardDefaults.getGPIOForBuzzer());
@@ -896,20 +905,20 @@ public class ThingsMainActivity extends AppCompatActivity {
     private void updateBarometerDisplay(float pressure) {
         // Update UI.
         if (!mHandler.hasMessages(MSG_UPDATE_BAROMETER)) {
-            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER, 5000);
+            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER, 1000);
         }
     }
     private void updateTemperatureDisplay(float pressure) {
         // Update UI.
         if (!mHandler.hasMessages(MSG_UPDATE_TEMPERATURE)) {
-            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_TEMPERATURE, 5000);
+            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_TEMPERATURE, 1000);
         }
     }
 
     private void updateBarometer(float pressure) {
         // Update UI.
         if (!mHandler.hasMessages(MSG_UPDATE_BAROMETER_UI)) {
-            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER_UI, 5000);
+            mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER_UI, 1000);
         }
     }
 

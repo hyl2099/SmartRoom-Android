@@ -1,6 +1,7 @@
 package com.upm.smartroom;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -44,9 +45,12 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
+
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.things.contrib.driver.bmx280.Bmx280SensorDriver;
 import com.upm.smartroom.board.BoardDefaults;
@@ -181,6 +185,7 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         }
     }
+    //thread for get API data from internet
     class MyThread implements Runnable {
         public void run() {
             while (!Thread.currentThread().isInterrupted()) {
@@ -188,7 +193,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 message.what = 1;
                 mHandler.sendMessage(message);
                 try {
-                    Thread.sleep(10000);
+                    Thread.sleep(1000*60*5);
                 }
                 catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -438,10 +443,10 @@ public class ThingsMainActivity extends AppCompatActivity {
      */
     private void onPictureTaken(final byte[] imageBytes) {
         if (imageBytes != null) {
-            //将log存在firebase 实时数据库
-            final DatabaseReference log = mFirebaseDatabase.getReference("logs").push();
+            //将doorbell record存在firebase 实时数据库
+            final DatabaseReference doorbellRecord = mFirebaseDatabase.getReference("doorbellRecords").push();
             //image存入storage
-            final StorageReference imageRef = mStorage.getReference().child(log.getKey());
+            final StorageReference imageRef = mStorage.getReference().child(doorbellRecord.getKey());
 
             // upload image to storage
             UploadTask task = imageRef.putBytes(imageBytes);
@@ -457,10 +462,10 @@ public class ThingsMainActivity extends AppCompatActivity {
                             downloadUrl = uri;
                             // mark image in the database
                             Log.i(TAG, "Image upload successful");
-                            log.child("timestamp").setValue(ServerValue.TIMESTAMP);
-                            log.child("image").setValue(downloadUrl.toString());
+                            doorbellRecord.child("timestamp").setValue(ServerValue.TIMESTAMP);
+                            doorbellRecord.child("image").setValue(downloadUrl.toString());
                             // process image annotations
-                            annotateImage(log, imageBytes);
+                            annotateImage(doorbellRecord, imageBytes);
                         }
                     });
                 }
@@ -469,7 +474,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 public void onFailure(@NonNull Exception e) {
                     // clean up this entry
                     Log.w(TAG, "Unable to upload image to Firebase");
-                    log.removeValue();
+                    doorbellRecord.removeValue();
                 }
             });
         }
@@ -516,13 +521,13 @@ public class ThingsMainActivity extends AppCompatActivity {
         }
     }
 
-
+    //fir timeView change per 1 second
     public void myTimer(final View v) {
         timeTxt.setText("");
-        SimpleDateFormat sdf = new SimpleDateFormat();// 格式化时间
-        sdf.applyPattern("yyyy-MM-dd HH:mm:ss a");// a为am/pm的标记
-        Date date = new Date();// 获取当前时间
-        timeTxt.append(sdf.format(date)+"\n\n");
+        SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a");
+        sDateFormat.setTimeZone(TimeZone.getTimeZone("GMT+2"));
+        String date = sDateFormat.format(new java.util.Date());
+        timeTxt.append(date.toString());
     }
 
     ////////////get info from weather API
@@ -537,6 +542,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         Log.i(LOG_TAG, "getTempByCityName:" + apiService.getTempByCityName());
         // Asíncrona
         call_async.enqueue(new Callback<Weather>() {
+            @SuppressLint("ResourceAsColor")
             @Override
             public void onResponse(Call<Weather> call, Response<Weather> response) {
                 Weather weather = response.body();
@@ -544,7 +550,6 @@ public class ThingsMainActivity extends AppCompatActivity {
                 int dataListNum = 0;
                 if (null != weather) {
                     Log.i(LOG_TAG, "getWeatherInfo:" + weather);
-
 
                     weatherTxt.append(weather.getWeather().get(0).getMain()+"   (");
                     weatherTxt.append(weather.getWeather().get(0).getDescription()+ ")");
@@ -555,6 +560,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                     humidity.append(weather.getMain().getHumidity().toString());
                     wind.append(weather.getWind().getSpeed().toString());
 
+                    //show icon of weather:
                     String icon = weather.getWeather().get(0).getIcon();
                     if (icon.contains("01d")){
                         weatherImage.setImageResource(R.drawable.w01d);

@@ -18,10 +18,9 @@
                     android:layout_weight="0.3"
                     android:layout_height="match_parent"
                     android:background="@color/colorOutside"
+                    android:layout_gravity = "center_vertical"
                     android:textSize="20sp"
-                    android:textAlignment="center"
-                    android:gravity="center"
-                    tools:ignore="Suspicious0dp" />
+                    android:gravity="center_vertical|center" />
                 <ImageView
                     android:id="@+id/weatherImage"
                     android:layout_width="0dp"

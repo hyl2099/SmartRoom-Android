@@ -17,7 +17,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="0.3"
                     android:layout_height="match_parent"
-                    android:background="@color/colorOutside"
+                    android:background="@color/colorSky"
                     android:layout_gravity = "center_vertical"
                     android:textSize="20sp"
                     android:gravity="center_vertical|center" />
@@ -35,8 +35,9 @@
                     android:layout_width="0dp"
                     android:layout_weight="0.3"
                     android:layout_height="match_parent"
-                    android:background="@color/colorOutside"
-                    android:textSize="16sp"
+                    android:background="@color/colorSky"
+                    android:textSize="24sp"
+                    android:gravity="center_vertical|center"
                     tools:ignore="Suspicious0dp" />
         </LinearLayout>
 
@@ -45,6 +46,7 @@
             android:layout_height="627dp"
             android:layout_below="@+id/weatherTop"
             android:layout_marginTop="4dp"
+            android:background="@color/colorSky"
             android:orientation="horizontal">
 
                 <LinearLayout
@@ -150,7 +152,7 @@
                         <TextView
                             android:id="@+id/wind"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:background="@color/colorOutside"
                             android:textSize="20sp"
                             android:textAlignment="center"

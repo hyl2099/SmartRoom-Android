@@ -1,4 +1,4 @@
-package com.upm.smartroom;
+package com.upm.smartroom.weather;
 
 import com.upm.smartroom.weather.Weather;
 import retrofit2.Call;

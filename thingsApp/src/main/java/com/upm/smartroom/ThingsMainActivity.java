@@ -34,6 +34,9 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
@@ -45,19 +48,21 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.things.contrib.driver.bmx280.Bmx280SensorDriver;
+import com.upm.smartroom.alarm.AlarmState;
 import com.upm.smartroom.board.BoardDefaults;
 import com.upm.smartroom.board.BoardSpec;
 import com.upm.smartroom.doorbell.DoorbellActivity;
 import com.upm.smartroom.doorbell.DoorbellCamera;
 import com.upm.smartroom.weather.Weather;
+import com.upm.smartroom.weather.WeatherRESTAPIService;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -92,7 +97,9 @@ public class ThingsMainActivity extends AppCompatActivity {
 
     // btb Firebase database variables
     private FirebaseDatabase mFirebaseDatabase;
+    private DatabaseReference mAlarmDatabaseReference;
     private FirebaseStorage mStorage;
+    private ChildEventListener mChildEventAlarmListener;
 
 
     private DoorbellCamera mCamera;
@@ -101,11 +108,9 @@ public class ThingsMainActivity extends AppCompatActivity {
     private static final String WEATHER_API_BASE_URL = "https://api.openweathermap.org";
     private WeatherRESTAPIService apiService;
 
-    /**
-     * Driver for the doorbell button;
-     */
+    //Driver for the doorbell button GPIO2_IO05;
     private ButtonInputDriver mButtonInputDriver;
-    //GPIO2_IO07
+    //Alarm button GPIO2_IO07
     private ButtonInputDriver mButtonAlarmInputDriver;
     private int alarmState;
     private static final int ALARMON = 1;
@@ -161,8 +166,8 @@ public class ThingsMainActivity extends AppCompatActivity {
     private HandlerThread mCloudThread;
 
 
-    //定义我的handler
-    //handler
+    //////定义我的handler
+    //my handler
     public Handler mHandler;
     class Mhandler extends Handler {
         private int mBarometerImage = -1;
@@ -221,6 +226,7 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         }
     }
+    //thread for Show Current Time
     class MyTimerThread implements Runnable {
         public void run() {
             while (!Thread.currentThread().isInterrupted()) {
@@ -236,6 +242,7 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         }
     }
+    //thread for check if need alarm on, buzzer on.
     class MyBuzzerThread implements Runnable {
         public void run() {
             while (!Thread.currentThread().isInterrupted()) {
@@ -243,7 +250,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 message.what = 3;
                 mHandler.sendMessage(message);
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -309,8 +316,9 @@ public class ThingsMainActivity extends AppCompatActivity {
         }
     };
 
-
-    //////////////////////oncreate///////////
+    ////////////////////////////////////////////////////////////////////////
+    //////////////////////oncreate///////////////////////////////////////
+    ///////////////////////////////////////////////////////////
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -349,6 +357,10 @@ public class ThingsMainActivity extends AppCompatActivity {
         // btb Get instance of Firebase database
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mStorage = FirebaseStorage.getInstance();
+        //reference of alarm state
+        mAlarmDatabaseReference = mFirebaseDatabase.getReference().child("alarmState");
+        AlarmState nowAlarmState = new AlarmState("0");
+        mAlarmDatabaseReference.setValue(nowAlarmState);
 
         // Creates new handlers and associated threads for camera and networking operations.
         //线程1，camera
@@ -368,6 +380,7 @@ public class ThingsMainActivity extends AppCompatActivity {
 //        somethingIsMoving = NOTHING_MOVING;
         somethingIsMoving = SOMETHING_MOVING;
         alarmState = ALARMOFF;
+        otherTxt.setText("Alarm OFF");
         new Thread(new MyBuzzerThread()).start();
 
         // Initialize the doorbell button driver
@@ -377,13 +390,46 @@ public class ThingsMainActivity extends AppCompatActivity {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(WEATHER_API_BASE_URL).addConverterFactory(GsonConverterFactory.create())
                 .build();
-
         //API
         apiService = retrofit.create(WeatherRESTAPIService.class);
 
         // Initialize Camera
         mCamera = DoorbellCamera.getInstance();
         mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
+
+        // btb Listener will be called when changes were performed in DB
+        //监听实时数据库中alarm开关变化
+        mChildEventAlarmListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                // Deserialize data from DB into our AlarmState object
+//                AlarmState rtAlarmState = dataSnapshot.getValue(AlarmState.class);
+//                if(rtAlarmState.getAlarmState().equals("1")){
+//                    alarmState = ALARMON;
+//                }else if(rtAlarmState.getAlarmState().equals("0")){
+//                    alarmState = ALARMOFF;
+//                }
+
+            }
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                //if alarm state in real time database changed, change alarmState in iMX7.
+//                AlarmState rtAlarmState = dataSnapshot.getValue(AlarmState.class);
+                //alarmState = rtAlarmState.getAlarmState();
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        };
+        mAlarmDatabaseReference.addChildEventListener(mChildEventAlarmListener);
+
+
 
     }
     ///////////////end of onCreate()///////////////////
@@ -468,7 +514,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_ENTER) {
-            Log.d(TAG, "button pressed now");
+            //Log.d(TAG, "button pressed now");
             try {
                 led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
                 buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
@@ -476,7 +522,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }else if (keyCode == KeyEvent.KEYCODE_0) {
-            Log.d(TAG, "Alarm pressed now!!!");
+            //Log.d(TAG, "Alarm pressed now!!!");
             try {
                 led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
                 buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
@@ -512,8 +558,21 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
             if(alarmState == ALARMOFF){
                 alarmState = ALARMON;
+                final DatabaseReference alarmStateData = mFirebaseDatabase.getReference("alarm").push();
+                //change real time database alarm state
+                Map<String, Object> childUpdates = new HashMap<>();
+                childUpdates.put(mFirebaseDatabase.getReference().child("alarmState").getKey(), "1");
+                mAlarmDatabaseReference.updateChildren(childUpdates);
+                otherTxt.setText("Alarm ON");
+                Log.d(TAG, "Alarm is off!!!");
             }else {
                 alarmState = ALARMOFF;
+                //change in real time database alarm state
+                Map<String, Object> childUpdates = new HashMap<>();
+                childUpdates.put(mFirebaseDatabase.getReference().child("alarmState").getKey(), "0");
+                mAlarmDatabaseReference.updateChildren(childUpdates);
+                otherTxt.setText("Alarm OFF");
+                Log.d(TAG, "Alarm is on!!!");
             }
             return true;
         }
@@ -767,6 +826,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     private void startBuzzerAlarm() throws IOException {
         stopBuzzer();
         if(alarmState == ALARMON){
+            otherTxt.setText("Alarm ON");
             if(somethingIsMoving == SOMETHING_MOVING){
                 Log.d(TAG, "Alarm State ON!!!");
                 try {
@@ -775,6 +835,8 @@ public class ThingsMainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
             }
+        }else {
+            otherTxt.setText("Alarm OFF");
         }
     }
     private void startBuzzer() throws IOException {

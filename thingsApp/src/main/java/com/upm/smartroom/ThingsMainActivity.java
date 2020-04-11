@@ -558,13 +558,12 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
             if(alarmState == ALARMOFF){
                 alarmState = ALARMON;
-                final DatabaseReference alarmStateData = mFirebaseDatabase.getReference("alarm").push();
                 //change real time database alarm state
                 Map<String, Object> childUpdates = new HashMap<>();
                 childUpdates.put(mFirebaseDatabase.getReference().child("alarmState").getKey(), "1");
                 mAlarmDatabaseReference.updateChildren(childUpdates);
                 otherTxt.setText("Alarm ON");
-                Log.d(TAG, "Alarm is off!!!");
+                Log.d(TAG, "Alarm is on!!!");
             }else {
                 alarmState = ALARMOFF;
                 //change in real time database alarm state
@@ -572,7 +571,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 childUpdates.put(mFirebaseDatabase.getReference().child("alarmState").getKey(), "0");
                 mAlarmDatabaseReference.updateChildren(childUpdates);
                 otherTxt.setText("Alarm OFF");
-                Log.d(TAG, "Alarm is on!!!");
+                Log.d(TAG, "Alarm is off!!!");
             }
             return true;
         }

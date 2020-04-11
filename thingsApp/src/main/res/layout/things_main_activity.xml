@@ -30,15 +30,38 @@
                     android:layout_marginRight="4dp"
                     android:layout_marginLeft="4dp"
                     android:src="@drawable/w01d"/>
-                <TextView
+                <LinearLayout
                     android:id="@+id/otherTxt"
                     android:layout_width="0dp"
                     android:layout_weight="0.3"
                     android:layout_height="match_parent"
-                    android:background="@color/colorSky"
-                    android:textSize="24sp"
-                    android:gravity="center_vertical|center"
-                    tools:ignore="Suspicious0dp" />
+                    android:orientation="vertical">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:id="@+id/alarmTxt"
+                            android:layout_height="0dp"
+                            android:layout_weight="0.33"
+                            android:background="@color/colorSky"
+                            android:textSize="20sp"
+                            android:gravity="center_vertical|center"
+                            tools:ignore="NestedWeights" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:id="@+id/lockTxt"
+                            android:layout_height="0dp"
+                            android:layout_weight="0.33"
+                            android:background="@color/colorSky"
+                            android:textSize="20sp"
+                            android:gravity="center_vertical|center"/>
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:id="@+id/switchTxt"
+                            android:layout_height="0dp"
+                            android:layout_weight="0.33"
+                            android:background="@color/colorSky"
+                            android:textSize="20sp"
+                            android:gravity="center_vertical|center" />
+                </LinearLayout>
         </LinearLayout>
 
         <LinearLayout

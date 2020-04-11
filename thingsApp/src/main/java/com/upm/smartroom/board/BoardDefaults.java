@@ -50,4 +50,13 @@ public class BoardDefaults {
     public static String getGPIOForBuzzer() {
         return "GPIO6_IO15";
     }
+
+    //
+    public static String getGPIOForLocker(){
+        return "GPIO2_IO03";
+    }
+    //
+    public static String getGPIOForSwitcher(){
+        return "GPIO1_IO10";
+    }
 }

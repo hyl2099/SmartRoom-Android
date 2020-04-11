@@ -12,4 +12,7 @@
     3, it can open the door;
     4, it can switch one the light.
     Using Google firebase, </string>
+
+    <string name="temperature_text">Room Temperature ℃</string>
+    <string name="barometer_text">Room Barometer kPa</string>
 </resources>

@@ -1,6 +1,4 @@
-package com.upm.smartroom.alarm;
-
-import java.util.Map;
+package com.upm.smartroom.state;
 
 public class AlarmState {
     String alarmState;

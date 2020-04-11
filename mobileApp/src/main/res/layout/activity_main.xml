@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <LinearLayout
         android:id="@+id/weatherTop"
@@ -10,51 +11,146 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/weatherImage"
+            android:layout_width="match_parent"
+            android:layout_height="300sp"
+            android:background="@color/colorSky"
+            android:src="@drawable/ic_sunny"
+            tools:ignore="Suspicious0dp" />
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginTop="4dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="50sp"
+            android:layout_marginRight="50sp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.3"
+                android:textSize="16sp"
+                android:text="@string/temperature_text" />
+
+            <TextView
+                android:id="@+id/temperatureDisplay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="-"
+                android:textSize="24sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="50sp"
+            android:layout_marginRight="50sp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.3"
+                android:textSize="16sp"
+                android:text="@string/barometer_text" />
+
+            <TextView
+                android:id="@+id/barometerDisplay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="-"
+                android:textSize="24sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/weatherImage"
             android:layout_marginLeft="20dp"
+            android:layout_marginTop="20dp"
             android:layout_marginRight="20dp"
             android:orientation="horizontal">
+
             <TextView
                 android:id="@+id/alarmTxt"
                 android:layout_width="0dp"
-                android:layout_weight="0.8"
                 android:layout_height="wrap_content"
+                android:layout_weight="0.8"
                 android:gravity="center_vertical|left"
-                android:textSize="24sp"
-                android:text="Alarm"
+                android:text="Turn on/off Alarm"
+                android:textSize="20sp"
                 tools:ignore="Suspicious0dp" />
+
             <Switch
                 android:id="@+id/alarmSwitch"
                 android:layout_width="0dp"
-                android:layout_weight="0.2"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent"
+                android:layout_weight="0.2" />
         </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginTop="4dp"
+            android:layout_height="wrap_content"
             android:layout_marginLeft="20dp"
+            android:layout_marginTop="4dp"
             android:layout_marginRight="20dp"
             android:orientation="horizontal">
+
             <TextView
                 android:id="@+id/lockTxt"
                 android:layout_width="0dp"
-                android:layout_weight="0.8"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical|left"
-                android:textSize="24sp"
-                android:text="Lock"
+                android:layout_weight="0.8"
+                android:text="Lock of Entrance"
+                android:textSize="20sp"
                 tools:ignore="Suspicious0dp" />
+
             <Switch
                 android:id="@+id/lockSwitch"
                 android:layout_width="0dp"
-                android:layout_weight="0.2"
                 android:layout_height="match_parent"
-                />
+                android:layout_weight="0.2" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginRight="20dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/switchTxt"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.8"
+                android:text="Switch of Light"
+                android:textSize="20sp"
+                tools:ignore="Suspicious0dp" />
+
+            <Switch
+                android:id="@+id/switchSwitcher"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.2" />
+
         </LinearLayout>
     </LinearLayout>
 
+    <Button
+        android:id="@+id/button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginTop="20sp"
+        android:layout_marginLeft="30sp"
+        android:layout_marginRight="30sp"
+        android:layout_marginBottom="20sp"
+        android:text="See The Room" />
 </LinearLayout>

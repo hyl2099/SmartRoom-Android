@@ -25,10 +25,13 @@ public class MobilMainActivity extends AppCompatActivity {
     private static final String TAG = MobilMainActivity.class.getSimpleName();
     private Switch alarmSwitcher;
     private Switch lockSwitcher;
+    private Switch switchSwitcher;
 
     // btb Firebase database variables
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mAlarmDatabaseReference;
+    private DatabaseReference mLockDatabaseReference;
+    private DatabaseReference mSwitchDatabaseReference;
     private FirebaseStorage mStorage;
     private ChildEventListener mChildEventAlarmListener;
 
@@ -42,8 +45,11 @@ public class MobilMainActivity extends AppCompatActivity {
         mStorage = FirebaseStorage.getInstance();
         //reference of alarm state
         mAlarmDatabaseReference = mFirebaseDatabase.getReference().child("alarmState");
+        mLockDatabaseReference = mFirebaseDatabase.getReference().child("lockState");
+        mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("switchState");
         alarmSwitcher = (Switch)findViewById(R.id.alarmSwitch);
         lockSwitcher = (Switch)findViewById(R.id.lockSwitch);
+        switchSwitcher = (Switch)findViewById(R.id.switchSwitcher);
         alarmSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -57,6 +63,38 @@ public class MobilMainActivity extends AppCompatActivity {
                     childUpdates.put(mFirebaseDatabase.getReference().child("alarmState").getKey(), "0");
                     mAlarmDatabaseReference.updateChildren(childUpdates);
                     Log.d(TAG, "Alarm is off!!!");
+                }
+            }
+        });
+        lockSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mFirebaseDatabase.getReference().child("lockState").getKey(), "1");
+                    mLockDatabaseReference.updateChildren(childUpdates);
+                    Log.d(TAG, "Lock is on!!!");
+                }else {
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mFirebaseDatabase.getReference().child("lockState").getKey(), "0");
+                    mLockDatabaseReference.updateChildren(childUpdates);
+                    Log.d(TAG, "Lock is off!!!");
+                }
+            }
+        });
+        switchSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mFirebaseDatabase.getReference().child("switchState").getKey(), "1");
+                    mSwitchDatabaseReference.updateChildren(childUpdates);
+                    Log.d(TAG, "Switch is on!!!");
+                }else {
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mFirebaseDatabase.getReference().child("switchState").getKey(), "0");
+                    mSwitchDatabaseReference.updateChildren(childUpdates);
+                    Log.d(TAG, "Switch is off!!!");
                 }
             }
         });

@@ -20,6 +20,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -56,11 +57,14 @@ import java.util.TimeZone;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.things.contrib.driver.bmx280.Bmx280SensorDriver;
-import com.upm.smartroom.alarm.AlarmState;
+import com.upm.smartroom.state.AlarmState;
 import com.upm.smartroom.board.BoardDefaults;
 import com.upm.smartroom.board.BoardSpec;
 import com.upm.smartroom.doorbell.DoorbellActivity;
 import com.upm.smartroom.doorbell.DoorbellCamera;
+import com.upm.smartroom.state.LockState;
+import com.upm.smartroom.state.RoomTemperature;
+import com.upm.smartroom.state.SwitchState;
 import com.upm.smartroom.weather.Weather;
 import com.upm.smartroom.weather.WeatherRESTAPIService;
 
@@ -90,7 +94,10 @@ public class ThingsMainActivity extends AppCompatActivity {
     private TextView temperatureDisplay;
     private TextView barometerDisplay;
     private TextView timeTxt;
-    private TextView otherTxt;
+    private ViewGroup otherTxt;
+    private TextView alarmTxt;
+    private TextView lockTxt;
+    private TextView switchTxt;
 
 
 
@@ -98,8 +105,13 @@ public class ThingsMainActivity extends AppCompatActivity {
     // btb Firebase database variables
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mAlarmDatabaseReference;
+    private DatabaseReference mLockDatabaseReference;
+    private DatabaseReference mSwitchDatabaseReference;
+    private DatabaseReference mRommTempDatabaseReference;
     private FirebaseStorage mStorage;
     private ChildEventListener mChildEventAlarmListener;
+    private ChildEventListener mChildEventLockListener;
+    private ChildEventListener mChildEventSwitchListener;
 
 
     private DoorbellCamera mCamera;
@@ -141,9 +153,15 @@ public class ThingsMainActivity extends AppCompatActivity {
     private  static final int SOMETHING_MOVING = 1;
     private  static final int NOTHING_MOVING = 0;
     //electric switch
-
+    private Gpio switcher;
+    private int switchState;
+    private static final int SWITCHON = 1;
+    private static final int SWITCHOFF = 0;
     //electronic lock
-
+    private Gpio locker;
+    private int lockState;
+    private static final int LOCKON = 1;
+    private static final int LOCKOFF = 0;
 
     /**
      * A {@link Handler} for running Camera tasks in the background.
@@ -175,7 +193,10 @@ public class ThingsMainActivity extends AppCompatActivity {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case 1:
+                    //get weather data from API and update
                     obtenerInfo(findViewById(R.id.weatherTxt));
+                    //update room temperature to mobile
+
                     break;
                 case 2:
                     myTimer(findViewById(R.id.timeTxt));
@@ -183,6 +204,8 @@ public class ThingsMainActivity extends AppCompatActivity {
                 case 3:
                     try {
                         startBuzzerAlarm();
+                        startLockOn();
+                        startSwitchOn();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -218,7 +241,8 @@ public class ThingsMainActivity extends AppCompatActivity {
                 message.what = 1;
                 mHandler.sendMessage(message);
                 try {
-                    Thread.sleep(1000*60*5);
+                    //per min update the API weather and room temperature to mobile
+                    Thread.sleep(1000*60);
                 }
                 catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -250,7 +274,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 message.what = 3;
                 mHandler.sendMessage(message);
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -319,6 +343,11 @@ public class ThingsMainActivity extends AppCompatActivity {
     ////////////////////////////////////////////////////////////////////////
     //////////////////////oncreate///////////////////////////////////////
     ///////////////////////////////////////////////////////////
+    //////////////////////////////////////////
+    //////////////////////////////////////////
+    //////////////////////////////////////////
+    //////////////////////////////////////////
+    @SuppressLint("CutPasteId")
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -333,7 +362,10 @@ public class ThingsMainActivity extends AppCompatActivity {
         temperatureDisplay = (TextView) findViewById(R.id.temperatureDisplay);
         barometerDisplay = (TextView) findViewById(R.id.barometerDisplay);
         timeTxt = (TextView) findViewById(R.id.timeTxt);
-        otherTxt = (TextView) findViewById(R.id.otherTxt);
+        otherTxt = findViewById(R.id.otherTxt);
+        alarmTxt = (TextView) findViewById(R.id.alarmTxt);
+        lockTxt = (TextView) findViewById(R.id.lockTxt);
+        switchTxt = (TextView) findViewById(R.id.switchTxt);
 
         currTemp = (TextView) findViewById(R.id.currTemp);
         minTemp = (TextView) findViewById(R.id.minTemp);
@@ -357,10 +389,22 @@ public class ThingsMainActivity extends AppCompatActivity {
         // btb Get instance of Firebase database
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mStorage = FirebaseStorage.getInstance();
-        //reference of alarm state
+        //reference of alarm , lock, switch state
         mAlarmDatabaseReference = mFirebaseDatabase.getReference().child("alarmState");
         AlarmState nowAlarmState = new AlarmState("0");
         mAlarmDatabaseReference.setValue(nowAlarmState);
+
+        mLockDatabaseReference = mFirebaseDatabase.getReference().child("lockState");
+        LockState nowLockState = new LockState("0");
+        mLockDatabaseReference.setValue(nowLockState);
+
+        mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("switchState");
+        SwitchState nowSwitchState = new SwitchState("0");
+        mSwitchDatabaseReference.setValue(nowSwitchState);
+
+        mRommTempDatabaseReference = mFirebaseDatabase.getReference().child("roomTemperature");
+        RoomTemperature nowRoomTemperature = new RoomTemperature(mLastTemperature, mLastPressure);
+        mRommTempDatabaseReference.setValue(nowRoomTemperature);
 
         // Creates new handlers and associated threads for camera and networking operations.
         //线程1，camera
@@ -380,7 +424,9 @@ public class ThingsMainActivity extends AppCompatActivity {
 //        somethingIsMoving = NOTHING_MOVING;
         somethingIsMoving = SOMETHING_MOVING;
         alarmState = ALARMOFF;
-        otherTxt.setText("Alarm OFF");
+        alarmTxt.setText("Alarm OFF");
+        lockState = LOCKOFF;
+        switchState = SWITCHOFF;
         new Thread(new MyBuzzerThread()).start();
 
         // Initialize the doorbell button driver
@@ -403,36 +449,74 @@ public class ThingsMainActivity extends AppCompatActivity {
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 // Deserialize data from DB into our AlarmState object
-//                AlarmState rtAlarmState = dataSnapshot.getValue(AlarmState.class);
-//                if(rtAlarmState.getAlarmState().equals("1")){
-//                    alarmState = ALARMON;
-//                }else if(rtAlarmState.getAlarmState().equals("0")){
-//                    alarmState = ALARMOFF;
-//                }
-
             }
             @Override
             public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 //if alarm state in real time database changed, change alarmState in iMX7.
-//                AlarmState rtAlarmState = dataSnapshot.getValue(AlarmState.class);
-                //alarmState = rtAlarmState.getAlarmState();
+                String rtAlarmState = (String) dataSnapshot.getValue();
+                if(rtAlarmState.equals("1")){
+                    alarmState = ALARMON;
+                }else if(rtAlarmState.equals("0")){
+                    alarmState = ALARMOFF;
+                }
             }
-
             @Override
             public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
-
             @Override
             public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
-
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {}
         };
         mAlarmDatabaseReference.addChildEventListener(mChildEventAlarmListener);
 
-
+        mChildEventLockListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                //if alarm state in real time database changed, change alarmState in iMX7.
+                String rtLockState = (String) dataSnapshot.getValue();
+                if(rtLockState.equals("1")){
+                    lockState = LOCKON;
+                }else if(rtLockState.equals("0")){
+                    lockState = LOCKOFF;
+                }
+            }
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        };
+        mLockDatabaseReference.addChildEventListener(mChildEventLockListener);
+        mChildEventSwitchListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                //if alarm state in real time database changed, change alarmState in iMX7.
+                String rtSwitchState = (String) dataSnapshot.getValue();
+                if(rtSwitchState.equals("1")){
+                    switchState = SWITCHON;
+                }else if(rtSwitchState.equals("0")){
+                    switchState = SWITCHOFF;
+                }
+            }
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        };
+        mSwitchDatabaseReference.addChildEventListener(mChildEventSwitchListener);
 
     }
     ///////////////end of onCreate()///////////////////
+    //////////////////////////////////////////////////
+    /////////////////////////////////////////////////
+    ///////////////////////////////////////////////
 
     private void initPIO() {
         try {
@@ -451,26 +535,27 @@ public class ThingsMainActivity extends AppCompatActivity {
 //            rgbLed.get(1).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
 //            rgbLed.get(2).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
             //初始化 BMP280Sensor
-            mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
-            try {
-                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
-                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
-                mEnvironmentalSensorDriver.registerTemperatureSensor();
-                mEnvironmentalSensorDriver.registerPressureSensor();
-                Log.d(TAG, "Initialized I2C BMP280");
-            } catch (IOException e) {
-                throw new RuntimeException("Error initializing BMP280", e);
-            }
+//            mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
+//            try {
+//                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
+//                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
+//                mEnvironmentalSensorDriver.registerTemperatureSensor();
+//                mEnvironmentalSensorDriver.registerPressureSensor();
+//                Log.d(TAG, "Initialized I2C BMP280");
+//            } catch (IOException e) {
+//                throw new RuntimeException("Error initializing BMP280", e);
+//            }
             //初始化buzzerSpeaker(Zumbado)
             PeripheralManager buzzerPio = PeripheralManager.getInstance();
             buzzerSpeaker = buzzerPio.openGpio(BoardDefaults.getGPIOForBuzzer());
             buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             //speaker.play(5);
             //初始化electronic lock
-
+            locker = buzzerPio.openGpio(BoardDefaults.getGPIOForLocker());
+            locker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             //初始化electric switch
-
-
+            switcher = buzzerPio.openGpio(BoardDefaults.getGPIOForSwitcher());
+            switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
 
             //初始化按钮
             mButtonInputDriver = new ButtonInputDriver(
@@ -489,6 +574,13 @@ public class ThingsMainActivity extends AppCompatActivity {
             mButtonAlarmInputDriver = null;
             Log.w(TAG, "Could not open GPIO pins", e);
         }
+    }
+
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        dettachDatabseReadListener();
     }
 
     @Override
@@ -562,7 +654,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 Map<String, Object> childUpdates = new HashMap<>();
                 childUpdates.put(mFirebaseDatabase.getReference().child("alarmState").getKey(), "1");
                 mAlarmDatabaseReference.updateChildren(childUpdates);
-                otherTxt.setText("Alarm ON");
+                alarmTxt.setText("Alarm ON");
                 Log.d(TAG, "Alarm is on!!!");
             }else {
                 alarmState = ALARMOFF;
@@ -570,7 +662,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 Map<String, Object> childUpdates = new HashMap<>();
                 childUpdates.put(mFirebaseDatabase.getReference().child("alarmState").getKey(), "0");
                 mAlarmDatabaseReference.updateChildren(childUpdates);
-                otherTxt.setText("Alarm OFF");
+                alarmTxt.setText("Alarm OFF");
                 Log.d(TAG, "Alarm is off!!!");
             }
             return true;
@@ -820,12 +912,18 @@ public class ThingsMainActivity extends AppCompatActivity {
             mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER_UI, 5000);
         }
     }
+
+    //update room temperature to mobile
+    private void updateRoomTemperature(){
+
+    }
     /////////////BPM280 sensor
+
 
     private void startBuzzerAlarm() throws IOException {
         stopBuzzer();
         if(alarmState == ALARMON){
-            otherTxt.setText("Alarm ON");
+            alarmTxt.setText("Alarm ON");
             if(somethingIsMoving == SOMETHING_MOVING){
                 Log.d(TAG, "Alarm State ON!!!");
                 try {
@@ -835,7 +933,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 }
             }
         }else {
-            otherTxt.setText("Alarm OFF");
+            alarmTxt.setText("Alarm OFF");
         }
     }
     private void startBuzzer() throws IOException {
@@ -843,5 +941,47 @@ public class ThingsMainActivity extends AppCompatActivity {
     }
     private void stopBuzzer() throws IOException {
         buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+    }
+    private void startLockOn() throws IOException {
+        if(lockState == LOCKON){
+            lockOn();
+            lockTxt.setText("Locker ON");
+            Log.d(TAG, "Lock is ON!!!");
+        }else if(lockState == LOCKOFF){
+            lockOff();
+            lockTxt.setText("Locker OFF");
+            //Log.d(TAG, "Lock is OFF!!!");
+        }
+    }
+    private void lockOn() throws IOException {
+        switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+    }
+    private void lockOff() throws IOException {
+        switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+    }
+    private void startSwitchOn() throws IOException {
+        if(switchState ==SWITCHON){
+            switchOn();
+            switchTxt.setText("Switcher ON");
+            Log.d(TAG, "Switch is ON!!!");
+        }else if(switchState ==SWITCHOFF){
+            switchOff();
+            switchTxt.setText("Switcher OFF");
+            //Log.d(TAG, "Switch is OFF!!!");
+        }
+    }
+    private void switchOn() throws IOException {
+        switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+    }
+    private void switchOff() throws IOException {
+        switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+    }
+
+    // btb method implemented
+    private void dettachDatabseReadListener(){
+        if(mChildEventAlarmListener!=null){
+            mAlarmDatabaseReference.removeEventListener(mChildEventAlarmListener);
+            mChildEventAlarmListener = null;
+        }
     }
 }

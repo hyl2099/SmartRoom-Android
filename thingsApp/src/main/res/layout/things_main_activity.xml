@@ -45,18 +45,19 @@
                                     android:id="@+id/alarmTxt"
                                     android:layout_width="0dp"
                                     android:layout_height="match_parent"
-                                    android:layout_weight="0.65"
+                                    android:layout_weight="0.6"
                                     android:gravity="center_vertical|right"
                                     android:layout_marginRight="4sp"
                                     android:text="Alarm"
-                                    android:textSize="12sp"
+                                    android:textSize="14sp"
                                     tools:ignore="Suspicious0dp" />
 
                                 <Switch
                                     android:id="@+id/alarmSwitch"
                                     android:layout_width="0dp"
                                     android:layout_height="match_parent"
-                                    android:layout_weight="0.35" />
+                                    android:layout_marginRight="4sp"
+                                    android:layout_weight="0.4" />
                         </LinearLayout>
 
                         <LinearLayout
@@ -68,17 +69,18 @@
                                     android:id="@+id/lockTxt"
                                     android:layout_width="0dp"
                                     android:layout_height="match_parent"
-                                    android:layout_weight="0.65"
+                                    android:layout_weight="0.6"
                                     android:gravity="center_vertical|right"
                                     android:layout_marginRight="4sp"
                                     android:text="Lock"
-                                    android:textSize="12sp"
+                                    android:textSize="14sp"
                                     tools:ignore="Suspicious0dp" />
                                 <Switch
                                     android:id="@+id/lockSwitch"
                                     android:layout_width="0dp"
                                     android:layout_height="match_parent"
-                                    android:layout_weight="0.35" />
+                                    android:layout_marginRight="4sp"
+                                    android:layout_weight="0.4" />
                         </LinearLayout>
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -90,7 +92,7 @@
                                     android:id="@+id/switchTxt"
                                     android:layout_width="0dp"
                                     android:layout_height="match_parent"
-                                    android:layout_weight="0.65"
+                                    android:layout_weight="0.6"
                                     android:gravity="center_vertical|right"
                                     android:layout_marginRight="4sp"
                                     android:text="Switch"
@@ -100,7 +102,8 @@
                                     android:id="@+id/switchSwitcher"
                                     android:layout_width="0dp"
                                     android:layout_height="match_parent"
-                                    android:layout_weight="0.35" />
+                                    android:layout_marginRight="4sp"
+                                    android:layout_weight="0.4" />
                         </LinearLayout>
                 </LinearLayout>
         </LinearLayout>

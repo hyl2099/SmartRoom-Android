@@ -59,4 +59,8 @@ public class BoardDefaults {
     public static String getGPIOForSwitcher(){
         return "GPIO1_IO10";
     }
+
+    public static String getGPIOForMovementSensor(){
+        return "GPIO6_IO13";
+    }
 }

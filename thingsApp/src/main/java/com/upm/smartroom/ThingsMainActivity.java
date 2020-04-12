@@ -32,6 +32,7 @@ import androidx.annotation.NonNull;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.things.pio.Gpio;
+import com.google.android.things.pio.GpioCallback;
 import com.google.android.things.pio.PeripheralManager;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -164,6 +165,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     private static final int SWITCHOFF = 0;
     //electronic lock
     private Gpio locker;
+    private Gpio movementSensor;
     private int lockState;
     private static final int LOCKON = 1;
     private static final int LOCKOFF = 0;
@@ -346,6 +348,24 @@ public class ThingsMainActivity extends AppCompatActivity {
             Log.d(TAG, "accuracy changed: " + accuracy);
         }
     };
+
+    //for movment sensor callback
+    private final GpioCallback mMoveSensorCallback = new GpioCallback() {
+        @Override
+        public boolean onGpioEdge(Gpio gpio) {
+            try {
+                if (gpio.getValue()) {
+                    Log.e("有人来了", gpio.getValue() + ":11111111111111111111111111111111111111111111111111111111111");
+                } else {
+                    Log.e("没有人", gpio.getValue() + ":2222222222222222222222222222222222222222222222222222222222222222222222222");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return true;
+        }
+    };
+
 
     ////////////////////////////////////////////////////////////////////////
     //////////////////////oncreate///////////////////////////////////////
@@ -633,6 +653,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         };
         mSwitchDatabaseReference.addChildEventListener(mChildEventSwitchListener);
 
+
     }
     ///////////////end of onCreate()///////////////////
     //////////////////////////////////////////////////
@@ -671,6 +692,17 @@ public class ThingsMainActivity extends AppCompatActivity {
             buzzerSpeaker = buzzerPio.openGpio(BoardDefaults.getGPIOForBuzzer());
             buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             //speaker.play(5);
+            //初始化HC_SR501 motion sensor
+            try {
+                movementSensor = buzzerPio.openGpio(BoardDefaults.getGPIOForMovementSensor());//Echo针脚
+                movementSensor.setDirection(Gpio.DIRECTION_IN);//将引脚初始化为输入
+                movementSensor.setActiveType(Gpio.ACTIVE_HIGH);//设置收到高电压是有效的结果
+                //注册状态更改监听类型 EDGE_NONE（无更改，默认）EDGE_RISING（从低到高）EDGE_FALLING（从高到低）
+                movementSensor.setEdgeTriggerType(Gpio.EDGE_BOTH);
+                movementSensor.registerGpioCallback(mMoveSensorCallback);//注册回调
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             //初始化electronic lock
             locker = buzzerPio.openGpio(BoardDefaults.getGPIOForLocker());
             locker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
@@ -722,6 +754,16 @@ public class ThingsMainActivity extends AppCompatActivity {
         } catch (IOException e) {
             Log.e(TAG, "button driver error", e);
         }
+        if (mMoveSensorCallback != null) {
+            try {
+                movementSensor.close();
+            } catch (IOException e) {
+                Log.w(TAG, "Unable to close mEchoGpio", e);
+            } finally {
+                movementSensor = null;
+            }
+        }
+        movementSensor.unregisterGpioCallback(mMoveSensorCallback);
     }
 
     @Override
@@ -1105,4 +1147,6 @@ public class ThingsMainActivity extends AppCompatActivity {
             mChildEventAlarmListener = null;
         }
     }
+
+
 }

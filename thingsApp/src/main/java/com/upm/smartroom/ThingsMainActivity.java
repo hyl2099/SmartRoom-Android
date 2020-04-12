@@ -21,7 +21,9 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -98,6 +100,9 @@ public class ThingsMainActivity extends AppCompatActivity {
     private TextView alarmTxt;
     private TextView lockTxt;
     private TextView switchTxt;
+    private Switch alarmSwitcher;
+    private Switch lockSwitcher;
+    private Switch switchSwitcher;
 
 
 
@@ -202,13 +207,6 @@ public class ThingsMainActivity extends AppCompatActivity {
                     myTimer(findViewById(R.id.timeTxt));
                     break;
                 case 3:
-                    try {
-                        startBuzzerAlarm();
-                        startLockOn();
-                        startSwitchOn();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                     break;
                     //4
                 case MSG_UPDATE_BAROMETER_UI:
@@ -375,6 +373,9 @@ public class ThingsMainActivity extends AppCompatActivity {
         alarmTxt = (TextView) findViewById(R.id.alarmTxt);
         lockTxt = (TextView) findViewById(R.id.lockTxt);
         switchTxt = (TextView) findViewById(R.id.switchTxt);
+        alarmSwitcher = (Switch)findViewById(R.id.alarmSwitch);
+        lockSwitcher = (Switch)findViewById(R.id.lockSwitch);
+        switchSwitcher = (Switch)findViewById(R.id.switchSwitcher);
 
         currTemp = (TextView) findViewById(R.id.currTemp);
         minTemp = (TextView) findViewById(R.id.minTemp);
@@ -399,6 +400,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mStorage = FirebaseStorage.getInstance();
         //reference of alarm , lock, switch state
+        //初始化时alarm，lock，switch状态根据数据库中数据来完成
         mAlarmDatabaseReference = mFirebaseDatabase.getReference().child("alarmState");
         AlarmState nowAlarmState = new AlarmState("0");
         mAlarmDatabaseReference.setValue(nowAlarmState);
@@ -411,9 +413,12 @@ public class ThingsMainActivity extends AppCompatActivity {
         SwitchState nowSwitchState = new SwitchState("0");
         mSwitchDatabaseReference.setValue(nowSwitchState);
 
+        //温度湿度
         mRoomTempDatabaseReference = mFirebaseDatabase.getReference().child("roomTemperature");
         RoomTemperature nowRoomTemperature = new RoomTemperature(mLastTemperature, mLastPressure);
         mRoomTempDatabaseReference.setValue(nowRoomTemperature);
+
+
 
         // Creates new handlers and associated threads for camera and networking operations.
         //线程1，camera
@@ -433,9 +438,11 @@ public class ThingsMainActivity extends AppCompatActivity {
 //        somethingIsMoving = NOTHING_MOVING;
         somethingIsMoving = SOMETHING_MOVING;
         alarmState = ALARMOFF;
-        alarmTxt.setText("Alarm OFF");
+        alarmTxt.setText("ALARM OFF");
         lockState = LOCKOFF;
+        lockTxt.setText("LOCK OFF");
         switchState = SWITCHOFF;
+        switchTxt.setText("SWITCH OFF");
         new Thread(new MyBuzzerThread()).start();
 
         // Initialize the doorbell button driver
@@ -452,6 +459,57 @@ public class ThingsMainActivity extends AppCompatActivity {
         mCamera = DoorbellCamera.getInstance();
         mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
 
+        alarmSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mAlarmDatabaseReference.getKey(), "1");
+                    mAlarmDatabaseReference.updateChildren(childUpdates);
+                    Log.d(TAG, "switch check Alarm is on!!!");
+
+                }else {
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mAlarmDatabaseReference.getKey(), "0");
+                    mAlarmDatabaseReference.updateChildren(childUpdates);
+                    Log.d(TAG, "switch check  Alarm is off!!!");
+                }
+            }
+        });
+        lockSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mLockDatabaseReference.getKey(), "1");
+                    mLockDatabaseReference.updateChildren(childUpdates);
+                    Log.d(TAG, "switch check Lock is on!!!");
+                }else {
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mLockDatabaseReference.getKey(), "0");
+                    mLockDatabaseReference.updateChildren(childUpdates);
+                    Log.d(TAG, "switch check Lock is off!!!");
+                }
+            }
+        });
+        switchSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mSwitchDatabaseReference.getKey(), "1");
+                    mSwitchDatabaseReference.updateChildren(childUpdates);
+                    Log.d(TAG, "switch check Switch is on!!!");
+                }else {
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mSwitchDatabaseReference.getKey(), "0");
+                    mSwitchDatabaseReference.updateChildren(childUpdates);
+                    Log.d(TAG, "switch check Switch is off!!!");
+                }
+            }
+        });
+
+
         // btb Listener will be called when changes were performed in DB
         //监听实时数据库中alarm开关变化
         mChildEventAlarmListener = new ChildEventListener() {
@@ -462,11 +520,29 @@ public class ThingsMainActivity extends AppCompatActivity {
             @Override
             public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 //if alarm state in real time database changed, change alarmState in iMX7.
-                String rtAlarmState = (String) dataSnapshot.getValue();
+                String rtAlarmState = (String) dataSnapshot.getValue().toString();
                 if(rtAlarmState.equals("1")){
                     alarmState = ALARMON;
+                    if(!alarmSwitcher.isChecked()){
+                        alarmSwitcher.setChecked(true);
+                    }
+                    try {
+                        startBuzzerAlarm();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d(TAG, "Database alarm is on!!!");
                 }else if(rtAlarmState.equals("0")){
                     alarmState = ALARMOFF;
+                    if(alarmSwitcher.isChecked()) {
+                        alarmSwitcher.setChecked(false);
+                    }
+                    try {
+                        stopBuzzer();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d(TAG, "Database alarm is off!!!");
                 }
             }
             @Override
@@ -483,12 +559,30 @@ public class ThingsMainActivity extends AppCompatActivity {
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
             @Override
             public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                //if alarm state in real time database changed, change alarmState in iMX7.
+                //if lock state in real time database changed, change alarmState in iMX7.
                 String rtLockState = (String) dataSnapshot.getValue();
                 if(rtLockState.equals("1")){
                     lockState = LOCKON;
+                    if(!lockSwitcher.isChecked()){
+                        lockSwitcher.setChecked(true);
+                    }
+                    try {
+                        lockOn();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d(TAG, "Database lock is on!!!");
                 }else if(rtLockState.equals("0")){
                     lockState = LOCKOFF;
+                    if(lockSwitcher.isChecked()){
+                        lockSwitcher.setChecked(true);
+                    }
+                    try {
+                        lockOff();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d(TAG, "Database lock is off!!!");
                 }
             }
             @Override
@@ -504,12 +598,30 @@ public class ThingsMainActivity extends AppCompatActivity {
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
             @Override
             public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                //if alarm state in real time database changed, change alarmState in iMX7.
+                //if switch state in real time database changed, change alarmState in iMX7.
                 String rtSwitchState = (String) dataSnapshot.getValue();
                 if(rtSwitchState.equals("1")){
                     switchState = SWITCHON;
+                    if(!switchSwitcher.isChecked()){
+                        switchSwitcher.setChecked(true);
+                    }
+                    try {
+                        switchOn();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d(TAG, "Database switch is on!!!");
                 }else if(rtSwitchState.equals("0")){
                     switchState = SWITCHOFF;
+                    if(switchSwitcher.isChecked()){
+                        switchSwitcher.setChecked(false);
+                    }
+                    try {
+                        switchOff();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d(TAG, "Database switch is off!!!");
                 }
             }
             @Override
@@ -641,7 +753,6 @@ public class ThingsMainActivity extends AppCompatActivity {
             // Doorbell rang!
             Log.d(TAG, "button pressed");
             mCamera.takePicture();
-            //speaker.play(5);
             try {
                 led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
                 buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
@@ -886,7 +997,6 @@ public class ThingsMainActivity extends AppCompatActivity {
                     Log.i(LOG_TAG, "no data from external API.");
                 }
             }
-
             @Override
             public void onFailure(Call<Weather> call, Throwable t) {
                 Toast.makeText(
@@ -949,6 +1059,8 @@ public class ThingsMainActivity extends AppCompatActivity {
         buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
     }
     private void stopBuzzer() throws IOException {
+        alarmTxt.setText("Alarm OFF");
+        Log.d(TAG, "Alarm State OFF!!!");
         buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
     }
     private void startLockOn() throws IOException {

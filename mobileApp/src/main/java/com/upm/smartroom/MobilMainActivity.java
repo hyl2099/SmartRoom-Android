@@ -24,8 +24,10 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 
 public class MobilMainActivity extends AppCompatActivity {
@@ -49,6 +51,8 @@ public class MobilMainActivity extends AppCompatActivity {
     private ChildEventListener mChildEventLockListener;
     private ChildEventListener mChildEventSwitchListener;
     private ChildEventListener mChildEventRoomTempListener;
+
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
 
     private int alarmState;
     private static final int ALARMON = 1;
@@ -83,19 +87,21 @@ public class MobilMainActivity extends AppCompatActivity {
         alarmSwitcher = (Switch)findViewById(R.id.alarmSwitch);
         lockSwitcher = (Switch)findViewById(R.id.lockSwitch);
         switchSwitcher = (Switch)findViewById(R.id.switchSwitcher);
+
         alarmSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if(isChecked){
                     Map<String, Object> childUpdates = new HashMap<>();
-                    childUpdates.put(mFirebaseDatabase.getReference().child("alarmState").getKey(), "1");
+                    childUpdates.put(mAlarmDatabaseReference.getKey(), "1");
                     mAlarmDatabaseReference.updateChildren(childUpdates);
-                    Log.d(TAG, "Alarm is on!!!");
+                    Log.d(TAG, "switch check Alarm is on!!!");
+
                 }else {
                     Map<String, Object> childUpdates = new HashMap<>();
-                    childUpdates.put(mFirebaseDatabase.getReference().child("alarmState").getKey(), "0");
+                    childUpdates.put(mAlarmDatabaseReference.getKey(), "0");
                     mAlarmDatabaseReference.updateChildren(childUpdates);
-                    Log.d(TAG, "Alarm is off!!!");
+                    Log.d(TAG, "switch check  Alarm is off!!!");
                 }
             }
         });
@@ -104,14 +110,14 @@ public class MobilMainActivity extends AppCompatActivity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if(isChecked){
                     Map<String, Object> childUpdates = new HashMap<>();
-                    childUpdates.put(mFirebaseDatabase.getReference().child("lockState").getKey(), "1");
+                    childUpdates.put(mLockDatabaseReference.getKey(), "1");
                     mLockDatabaseReference.updateChildren(childUpdates);
-                    Log.d(TAG, "Lock is on!!!");
+                    Log.d(TAG, "switch check Lock is on!!!");
                 }else {
                     Map<String, Object> childUpdates = new HashMap<>();
-                    childUpdates.put(mFirebaseDatabase.getReference().child("lockState").getKey(), "0");
+                    childUpdates.put(mLockDatabaseReference.getKey(), "0");
                     mLockDatabaseReference.updateChildren(childUpdates);
-                    Log.d(TAG, "Lock is off!!!");
+                    Log.d(TAG, "switch check Lock is off!!!");
                 }
             }
         });
@@ -120,14 +126,14 @@ public class MobilMainActivity extends AppCompatActivity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if(isChecked){
                     Map<String, Object> childUpdates = new HashMap<>();
-                    childUpdates.put(mFirebaseDatabase.getReference().child("switchState").getKey(), "1");
+                    childUpdates.put(mSwitchDatabaseReference.getKey(), "1");
                     mSwitchDatabaseReference.updateChildren(childUpdates);
-                    Log.d(TAG, "Switch is on!!!");
+                    Log.d(TAG, "switch check Switch is on!!!");
                 }else {
                     Map<String, Object> childUpdates = new HashMap<>();
-                    childUpdates.put(mFirebaseDatabase.getReference().child("switchState").getKey(), "0");
+                    childUpdates.put(mSwitchDatabaseReference.getKey(), "0");
                     mSwitchDatabaseReference.updateChildren(childUpdates);
-                    Log.d(TAG, "Switch is off!!!");
+                    Log.d(TAG, "switch check Switch is off!!!");
                 }
             }
         });
@@ -144,13 +150,19 @@ public class MobilMainActivity extends AppCompatActivity {
             @Override
             public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 //if alarm state in real time database changed, change alarmState in iMX7.
-                String rtAlarmState = (String) dataSnapshot.getValue();
+                String rtAlarmState = (String) Objects.requireNonNull(dataSnapshot.getValue()).toString();
                 if(rtAlarmState.equals("1")){
                     alarmState = ALARMON;
-                    alarmSwitcher.setChecked(true);
+                    if(!alarmSwitcher.isChecked()){
+                        alarmSwitcher.setChecked(true);
+                    }
+                    Log.d(TAG, "Database alarm is on!!!");
                 }else if(rtAlarmState.equals("0")){
                     alarmState = ALARMOFF;
-                    alarmSwitcher.setChecked(false);
+                    if(alarmSwitcher.isChecked()) {
+                        alarmSwitcher.setChecked(false);
+                    }
+                    Log.d(TAG, "Database alarm is off!!!");
                 }
             }
             @Override
@@ -169,12 +181,19 @@ public class MobilMainActivity extends AppCompatActivity {
             public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 //if alarm state in real time database changed, change alarmState in iMX7.
                 String rtLockState = (String) dataSnapshot.getValue();
+                assert rtLockState != null;
                 if(rtLockState.equals("1")){
                     lockState = LOCKON;
-                    lockSwitcher.setChecked(true);
+                    if(!lockSwitcher.isChecked()){
+                        lockSwitcher.setChecked(true);
+                    }
+                    Log.d(TAG, "Database lock is on!!!");
                 }else if(rtLockState.equals("0")){
                     lockState = LOCKOFF;
-                    lockSwitcher.setChecked(false);
+                    if(lockSwitcher.isChecked()){
+                        lockSwitcher.setChecked(true);
+                    }
+                    Log.d(TAG, "Database lock is off!!!");
                 }
             }
             @Override
@@ -192,12 +211,19 @@ public class MobilMainActivity extends AppCompatActivity {
             public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 //if alarm state in real time database changed, change alarmState in iMX7.
                 String rtSwitchState = (String) dataSnapshot.getValue();
+                assert rtSwitchState != null;
                 if(rtSwitchState.equals("1")){
                     switchState = SWITCHON;
-                    switchSwitcher.setChecked(true);
+                    if(!switchSwitcher.isChecked()){
+                        switchSwitcher.setChecked(true);
+                    }
+                    Log.d(TAG, "Database switch is on!!!");
                 }else if(rtSwitchState.equals("0")){
                     switchState = SWITCHOFF;
-                    switchSwitcher.setChecked(false);
+                    if(switchSwitcher.isChecked()){
+                        switchSwitcher.setChecked(false);
+                    }
+                    Log.d(TAG, "Database switch is off!!!");
                 }
             }
             @Override
@@ -215,9 +241,11 @@ public class MobilMainActivity extends AppCompatActivity {
             @Override
             public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 //if alarm state in real time database changed, change alarmState in iMX7.
-                RoomTemperature rtSwitchState = dataSnapshot.getValue(RoomTemperature.class);
-                temperatureDisplay.setText((int) rtSwitchState.getmLastPressure());
-                barometerDisplay.setText((int) rtSwitchState.getmLastPressure());
+                if(dataSnapshot.getKey().equals("mLastPressure")){
+                    barometerDisplay.setText(DECIMAL_FORMAT.format((double)dataSnapshot.getValue()/10));
+                }else{
+                    temperatureDisplay.setText(DECIMAL_FORMAT.format(dataSnapshot.getValue()));
+                }
             }
             @Override
             public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
@@ -235,9 +263,6 @@ public class MobilMainActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.opciones_menu, menu);
         return true;
     }
-
-
-
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.opcMessage:

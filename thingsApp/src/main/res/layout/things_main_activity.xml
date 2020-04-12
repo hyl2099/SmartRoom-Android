@@ -36,31 +36,72 @@
                     android:layout_weight="0.3"
                     android:layout_height="match_parent"
                     android:orientation="vertical">
-                        <TextView
+                        <LinearLayout
                             android:layout_width="match_parent"
-                            android:id="@+id/alarmTxt"
                             android:layout_height="0dp"
                             android:layout_weight="0.33"
-                            android:background="@color/colorSky"
-                            android:textSize="20sp"
-                            android:gravity="center_vertical|center"
-                            tools:ignore="NestedWeights" />
-                        <TextView
+                            android:orientation="horizontal">
+                                <TextView
+                                    android:id="@+id/alarmTxt"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="0.65"
+                                    android:gravity="center_vertical|right"
+                                    android:layout_marginRight="4sp"
+                                    android:text="Alarm"
+                                    android:textSize="12sp"
+                                    tools:ignore="Suspicious0dp" />
+
+                                <Switch
+                                    android:id="@+id/alarmSwitch"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="0.35" />
+                        </LinearLayout>
+
+                        <LinearLayout
                             android:layout_width="match_parent"
-                            android:id="@+id/lockTxt"
                             android:layout_height="0dp"
                             android:layout_weight="0.33"
-                            android:background="@color/colorSky"
-                            android:textSize="20sp"
-                            android:gravity="center_vertical|center"/>
-                        <TextView
+                            android:orientation="horizontal">
+                                <TextView
+                                    android:id="@+id/lockTxt"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="0.65"
+                                    android:gravity="center_vertical|right"
+                                    android:layout_marginRight="4sp"
+                                    android:text="Lock"
+                                    android:textSize="12sp"
+                                    tools:ignore="Suspicious0dp" />
+                                <Switch
+                                    android:id="@+id/lockSwitch"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="0.35" />
+                        </LinearLayout>
+                        <LinearLayout
                             android:layout_width="match_parent"
-                            android:id="@+id/switchTxt"
                             android:layout_height="0dp"
                             android:layout_weight="0.33"
-                            android:background="@color/colorSky"
-                            android:textSize="20sp"
-                            android:gravity="center_vertical|center" />
+                            android:orientation="horizontal">
+
+                                <TextView
+                                    android:id="@+id/switchTxt"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="0.65"
+                                    android:gravity="center_vertical|right"
+                                    android:layout_marginRight="4sp"
+                                    android:text="Switch"
+                                    android:textSize="14sp"
+                                    tools:ignore="Suspicious0dp" />
+                                <Switch
+                                    android:id="@+id/switchSwitcher"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="0.35" />
+                        </LinearLayout>
                 </LinearLayout>
         </LinearLayout>
 

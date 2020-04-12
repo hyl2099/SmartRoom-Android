@@ -79,8 +79,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 
 public class ThingsMainActivity extends AppCompatActivity {
-    private static final String TAG = DoorbellActivity.class.getSimpleName();
-    private static final String LOG_TAG = DoorbellActivity.class.getSimpleName();
+    private static final String TAG = ThingsMainActivity.class.getSimpleName();
+    private static final String LOG_TAG = ThingsMainActivity.class.getSimpleName();
 
 
     //data from API
@@ -209,6 +209,13 @@ public class ThingsMainActivity extends AppCompatActivity {
                     myTimer(findViewById(R.id.timeTxt));
                     break;
                 case 3:
+//                    if(somethingIsMoving == SOMETHING_MOVING){
+//                        try {
+//                            startBuzzerAlarm();
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
                     break;
                     //4
                 case MSG_UPDATE_BAROMETER_UI:
@@ -355,9 +362,14 @@ public class ThingsMainActivity extends AppCompatActivity {
         public boolean onGpioEdge(Gpio gpio) {
             try {
                 if (gpio.getValue()) {
-                    Log.e("有人来了", gpio.getValue() + ":11111111111111111111111111111111111111111111111111111111111");
+                    somethingIsMoving = SOMETHING_MOVING;
+                    Log.e("有人来了", gpio.getValue() + ":111111111111111111111111111111111111111111111111111111111111111111111111111111");
+                    startMovementAlarm();
+                    mCamera.takePicture();
                 } else {
+                    somethingIsMoving = NOTHING_MOVING;
                     Log.e("没有人", gpio.getValue() + ":2222222222222222222222222222222222222222222222222222222222222222222222222");
+                    //stopBuzzer();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -422,23 +434,40 @@ public class ThingsMainActivity extends AppCompatActivity {
         //reference of alarm , lock, switch state
         //初始化时alarm，lock，switch状态根据数据库中数据来完成
         mAlarmDatabaseReference = mFirebaseDatabase.getReference().child("alarmState");
-        AlarmState nowAlarmState = new AlarmState("0");
+        AlarmState nowAlarmState = new AlarmState("1");
         mAlarmDatabaseReference.setValue(nowAlarmState);
+        alarmSwitcher.setChecked(true);
+        somethingIsMoving = NOTHING_MOVING;
+        alarmState = ALARMON;
+        alarmTxt.setText("ALARM ON");
+
+
 
         mLockDatabaseReference = mFirebaseDatabase.getReference().child("lockState");
         LockState nowLockState = new LockState("0");
         mLockDatabaseReference.setValue(nowLockState);
+        lockSwitcher.setChecked(false);
+        lockState = LOCKOFF;
+        lockTxt.setText("LOCK OFF");
 
         mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("switchState");
         SwitchState nowSwitchState = new SwitchState("0");
         mSwitchDatabaseReference.setValue(nowSwitchState);
+        switchSwitcher.setChecked(false);
+        switchState = SWITCHOFF;
+        switchTxt.setText("SWITCH OFF");
 
         //温度湿度
         mRoomTempDatabaseReference = mFirebaseDatabase.getReference().child("roomTemperature");
         RoomTemperature nowRoomTemperature = new RoomTemperature(mLastTemperature, mLastPressure);
         mRoomTempDatabaseReference.setValue(nowRoomTemperature);
 
+        // Initialize Camera
+        mCamera = DoorbellCamera.getInstance();
+        mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
 
+        // Initialize the doorbell button driver
+        initPIO();
 
         // Creates new handlers and associated threads for camera and networking operations.
         //线程1，camera
@@ -455,18 +484,9 @@ public class ThingsMainActivity extends AppCompatActivity {
         mHandler = new Mhandler();
         new Thread(new MyThread()).start();
         new Thread(new MyTimerThread()).start();
-//        somethingIsMoving = NOTHING_MOVING;
-        somethingIsMoving = SOMETHING_MOVING;
-        alarmState = ALARMOFF;
-        alarmTxt.setText("ALARM OFF");
-        lockState = LOCKOFF;
-        lockTxt.setText("LOCK OFF");
-        switchState = SWITCHOFF;
-        switchTxt.setText("SWITCH OFF");
         new Thread(new MyBuzzerThread()).start();
 
-        // Initialize the doorbell button driver
-        initPIO();
+
         //initialize API
         // btb added for retrofit for weather API
         Retrofit retrofit = new Retrofit.Builder()
@@ -475,9 +495,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         //API
         apiService = retrofit.create(WeatherRESTAPIService.class);
 
-        // Initialize Camera
-        mCamera = DoorbellCamera.getInstance();
-        mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
+
 
         alarmSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
             @Override
@@ -793,7 +811,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_ENTER) {
             // Doorbell rang!
-            Log.d(TAG, "button pressed");
+            Log.d(TAG, "Door bell button pressed");
             mCamera.takePicture();
             try {
                 led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
@@ -846,7 +864,6 @@ public class ThingsMainActivity extends AppCompatActivity {
                     final byte[] imageBytes = new byte[imageBuf.remaining()];
                     imageBuf.get(imageBytes);
                     image.close();
-
                     onPictureTaken(imageBytes);
                 }
             };
@@ -856,10 +873,18 @@ public class ThingsMainActivity extends AppCompatActivity {
      */
     private void onPictureTaken(final byte[] imageBytes) {
         if (imageBytes != null) {
-            //将doorbell record存在firebase 实时数据库
+            final StorageReference imageRef;
+            final DatabaseReference movementRecord = mFirebaseDatabase.getReference("movementRecords").push();
             final DatabaseReference doorbellRecord = mFirebaseDatabase.getReference("doorbellRecords").push();
-            //image存入storage
-            final StorageReference imageRef = mStorage.getReference().child(doorbellRecord.getKey());
+            //将doorbell record存在firebase 实时数据库
+            if (somethingIsMoving == SOMETHING_MOVING){
+                //image存入storage
+                imageRef = mStorage.getReference().child(movementRecord.getKey());
+            }else{
+                //image存入storage
+                imageRef = mStorage.getReference().child(doorbellRecord.getKey());
+            }
+
 
             // upload image to storage
             UploadTask task = imageRef.putBytes(imageBytes);
@@ -1095,6 +1120,18 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         }else {
             alarmTxt.setText("Alarm OFF");
+        }
+    }
+    private void startMovementAlarm() throws IOException {
+        //stopBuzzer();
+        if(alarmState == ALARMON){
+            Log.d(TAG, "startMovementAlarm Alarm ON11111111111111111111111111111111111111111!!!");
+                Log.d(TAG, "Someoen is coming11111111111111111111111111111111111111111!!!");
+                try {
+                    startBuzzer();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
         }
     }
     private void startBuzzer() throws IOException {

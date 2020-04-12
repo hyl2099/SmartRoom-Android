@@ -46,7 +46,7 @@ public class BoardDefaults {
         return rgb;
     }
 
-    //return LED
+    //return Buzzer
     public static String getGPIOForBuzzer() {
         return "GPIO6_IO15";
     }

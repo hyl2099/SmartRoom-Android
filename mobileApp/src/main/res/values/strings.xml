@@ -15,4 +15,6 @@
 
     <string name="temperature_text">Room Temperature ℃</string>
     <string name="barometer_text">Room Barometer kPa</string>
+
+    <string name="ok">OK</string>
 </resources>

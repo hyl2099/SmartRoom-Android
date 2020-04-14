@@ -9,7 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.annotation.NonNull;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
@@ -21,15 +21,18 @@ import com.upm.smartroom.R;
 
 import java.util.ArrayList;
 
+import static androidx.recyclerview.widget.RecyclerView.*;
+
 /**
  * RecyclerView adapter to populate doorbell entries from Firebase.
  */
+//Firebase UI为RecyclerView量身定制了一个适配器FirebaseRecyclerAdapter。
 public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry, DoorbellEntryAdapter.DoorbellEntryViewHolder> {
 
     /**
      * ViewHolder for each doorbell entry
      */
-    public static class DoorbellEntryViewHolder extends RecyclerView.ViewHolder {
+    public static class DoorbellEntryViewHolder extends ViewHolder {
 
         public final ImageView image;
         public final TextView time;
@@ -37,11 +40,11 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
 
         public DoorbellEntryViewHolder(View itemView) {
             super(itemView);
-
             this.image = (ImageView) itemView.findViewById(R.id.imageView1);
             this.time = (TextView) itemView.findViewById(R.id.textView1);
             this.metadata = (TextView) itemView.findViewById(R.id.textView2);
         }
+
     }
 
     private Context mApplicationContext;
@@ -57,13 +60,19 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
         mFirebaseStorage = FirebaseStorage.getInstance();
     }
 
+    @NonNull
     @Override
     public DoorbellEntryViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        //Inflating layout doorbell_entry.xml
         View entryView = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.doorbell_entry, parent, false);
 
-        return new DoorbellEntryViewHolder(entryView);
+        DoorbellEntryViewHolder viewHolder = new DoorbellEntryViewHolder(entryView);
+
+        //return new DoorbellEntryViewHolder(entryView);
+        return viewHolder;
     }
+
 
     @Override
     protected void onBindViewHolder(DoorbellEntryViewHolder holder, int position, DoorbellEntry model) {
@@ -97,4 +106,5 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
 
         }
     }
+
 }

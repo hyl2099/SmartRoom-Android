@@ -1,7 +1,10 @@
 package com.upm.smartroom.doorbell;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
+import android.view.View;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -16,6 +19,8 @@ public class DoorbellMsgActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private DoorbellEntryAdapter mAdapter;
 
+    private DatabaseReference ref;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -23,7 +28,7 @@ public class DoorbellMsgActivity extends AppCompatActivity {
 
         // Reference for doorbell events from embedded device
         //FirebaseDatabase
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference().child("doorbellRecords");
+        ref = FirebaseDatabase.getInstance().getReference().child("doorbellRecords");
 
         //定义antivity_main 中的doorbellView
         mRecyclerView = (RecyclerView) findViewById(R.id.doorbellView);
@@ -39,6 +44,7 @@ public class DoorbellMsgActivity extends AppCompatActivity {
         // 避免重复创建以及执行高成本的findViewById()方法。
         mAdapter = new DoorbellEntryAdapter(this, ref);
         mRecyclerView.setAdapter(mAdapter);
+
     }
 
     @Override
@@ -60,6 +66,23 @@ public class DoorbellMsgActivity extends AppCompatActivity {
         super.onStop();
         // Tear down Firebase listeners in adapter
         mAdapter.stopListening();
+    }
+
+    AlertDialog deleteDialog;
+    public void onDeleteClick(View view) {
+        deleteDialog = new AlertDialog.Builder(this)
+                .setTitle("Delete Item")
+                .setView(R.layout.item_delete)
+                .setPositiveButton(android.R.string.ok, (DialogInterface.OnClickListener) new OnOkClick())
+                .create();
+        deleteDialog.show();
+    }
+
+    class OnOkClick implements DialogInterface.OnClickListener {
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+            ref.removeValue();
+        }
     }
 
 }

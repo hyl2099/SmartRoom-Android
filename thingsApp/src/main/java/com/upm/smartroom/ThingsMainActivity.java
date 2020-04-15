@@ -2,6 +2,7 @@ package com.upm.smartroom;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -60,6 +61,7 @@ import java.util.TimeZone;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.things.contrib.driver.bmx280.Bmx280SensorDriver;
+import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 import com.upm.smartroom.state.AlarmState;
 import com.upm.smartroom.board.BoardDefaults;
 import com.upm.smartroom.board.BoardSpec;
@@ -951,6 +953,12 @@ public class ThingsMainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()){
+            case R.id.opcMessage:
+                startActivity(new Intent(this, DoorbellMsgActivity.class));
+                return true;
+            case R.id.opcAbout:
+                startActivity(new Intent(this, About.class));
+                return true;
             case R.id.sign_out_menu:
                 //sign out
 

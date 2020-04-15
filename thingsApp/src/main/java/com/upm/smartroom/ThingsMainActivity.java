@@ -48,6 +48,7 @@ import com.google.firebase.database.ServerValue;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+//import com.gracecode.android.common.helper.UIHelper;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -65,7 +66,6 @@ import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 import com.upm.smartroom.state.AlarmState;
 import com.upm.smartroom.board.BoardDefaults;
 import com.upm.smartroom.board.BoardSpec;
-import com.upm.smartroom.doorbell.DoorbellActivity;
 import com.upm.smartroom.doorbell.DoorbellCamera;
 import com.upm.smartroom.state.LockState;
 import com.upm.smartroom.state.RoomTemperature;

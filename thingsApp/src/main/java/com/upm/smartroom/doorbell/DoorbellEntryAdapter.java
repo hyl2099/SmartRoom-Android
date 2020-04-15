@@ -16,7 +16,7 @@ import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-//import com.upm.smartroom.GlideApp;
+import com.upm.smartroom.GlideApp;
 import com.upm.smartroom.R;
 
 import java.util.ArrayList;
@@ -87,10 +87,10 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
         if (model.getImage() != null) {
             StorageReference imageRef = mFirebaseStorage.getReferenceFromUrl(model.getImage());
 
-//            GlideApp.with(mApplicationContext)
-//                    .load(imageRef)
-//                    .placeholder(R.drawable.ic_image)
-//                    .into(holder.image);
+            GlideApp.with(mApplicationContext)
+                    .load(imageRef)
+                    .placeholder(R.drawable.ic_image)
+                    .into(holder.image);
         }
 
         // Display the metadata

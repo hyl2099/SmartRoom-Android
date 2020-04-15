@@ -28,18 +28,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/textView2" />
-        <com.getbase.floatingactionbutton.FloatingActionButton
-            android:id="@+id/item_delete"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onDeleteClick"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true"
-            android:layout_margin="16dp"
-            android:clickable="true"
-            android:src="@drawable/ic_delete"
-            tools:ignore="OnClick" />
+<!--        <com.getbase.floatingactionbutton.FloatingActionButton-->
+<!--            android:id="@+id/item_delete"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:onClick="onDeleteClick"-->
+<!--            android:layout_alignParentBottom="true"-->
+<!--            android:layout_alignParentRight="true"-->
+<!--            android:layout_alignParentEnd="true"-->
+<!--            android:layout_margin="16dp"-->
+<!--            android:clickable="true"-->
+<!--            android:src="@drawable/ic_delete"-->
+<!--            tools:ignore="OnClick" />-->
     </LinearLayout>
 
 </LinearLayout>

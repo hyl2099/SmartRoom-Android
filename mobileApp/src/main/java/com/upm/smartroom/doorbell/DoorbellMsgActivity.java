@@ -14,7 +14,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 public class DoorbellMsgActivity extends AppCompatActivity {
-    private static final String TAG = "MainActivity";
+    private static final String TAG = "DoorbellMainActivity";
 
     private RecyclerView mRecyclerView;
     private DoorbellEntryAdapter mAdapter;

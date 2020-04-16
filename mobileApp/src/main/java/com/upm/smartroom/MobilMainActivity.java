@@ -22,6 +22,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
 import com.upm.smartroom.doorbell.DoorbellMsgActivity;
+import com.upm.smartroom.plant.PlantMainActivity;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -267,6 +268,9 @@ public class MobilMainActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.opcMessage:
                 startActivity(new Intent(this, DoorbellMsgActivity.class));
+                return true;
+            case R.id.opcPlants:
+                startActivity(new Intent(this, PlantMainActivity.class));
                 return true;
             case R.id.opcAbout:
                 startActivity(new Intent(this, About.class));

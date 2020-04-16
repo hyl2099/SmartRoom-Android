@@ -8,5 +8,45 @@
             android:hint="content here"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
+        <LinearLayout
+            android:id="@+id/id_insert_btns_ll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:orientation="horizontal" >
+        <Button
+            android:id="@+id/id_local_img_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="30px"
+            android:layout_marginRight="30px"
+            android:layout_weight="1"
+            android:text="插入本地图片" />
 
+        <Button
+            android:id="@+id/id_camera_img_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="30px"
+            android:layout_marginRight="30px"
+            android:layout_weight="1"
+            android:text="插入拍照图片" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/id_show_url_tv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_alignParentBottom="true"
+            android:textColor="#FF0000"
+            android:text="显示图片路径" />
+
+        <ImageView
+            android:id="@+id/id_image_iv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/id_insert_btns_ll"
+            android:layout_above="@id/id_show_url_tv"
+            android:layout_centerHorizontal="true"
+            />
 </LinearLayout>

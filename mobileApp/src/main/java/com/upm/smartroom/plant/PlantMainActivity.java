@@ -3,27 +3,44 @@ package com.upm.smartroom.plant;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.upm.smartroom.MobilMainActivity;
 import com.upm.smartroom.R;
+import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 
 public class PlantMainActivity extends AppCompatActivity {
-    private static final String TAG = "MainActivity";
+
+    private static final String TAG = MobilMainActivity.class.getSimpleName();
 
     private RecyclerView mRecyclerView;
     private PlantEntryAdapter mAdapter;
 
     private DatabaseReference ref;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,11 +49,9 @@ public class PlantMainActivity extends AppCompatActivity {
         //在子Activity的onCreate中，将返回键显示出来；
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        // Reference for doorbell events from embedded device
-        //FirebaseDatabase
         ref = FirebaseDatabase.getInstance().getReference().child("plants");
 
-        //定义antivity_main 中的doorbellView
+        //定义antivity_main 中的plantView
         mRecyclerView = (RecyclerView) findViewById(R.id.plantView);
         // Show most recent items at the top
         LinearLayoutManager layoutManager =
@@ -45,6 +60,7 @@ public class PlantMainActivity extends AppCompatActivity {
 
         mAdapter = new PlantEntryAdapter(this, ref);
         mRecyclerView.setAdapter(mAdapter);
+
     }
 
     @Override
@@ -68,22 +84,10 @@ public class PlantMainActivity extends AppCompatActivity {
         mAdapter.stopListening();
     }
 
-    AlertDialog addDialog;
     public void onAddClick(View view) {
-        addDialog = new AlertDialog.Builder(this)
-                .setTitle("Add Item")
-                .setView(R.layout.item_add)
-                .setPositiveButton(android.R.string.ok, (DialogInterface.OnClickListener) new OnOkClick())
-                .create();
-        addDialog.show();
+        startActivity(new Intent(this, AddItemActivity.class));
     }
 
-    class OnOkClick implements DialogInterface.OnClickListener {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            ref.removeValue();
-        }
-    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -100,4 +104,6 @@ public class PlantMainActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         context.startActivity(intent);
     }
+
+
 }

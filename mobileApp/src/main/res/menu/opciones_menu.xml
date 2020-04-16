@@ -9,12 +9,13 @@
         android:orderInCategory="10"
         app:showAsAction="ifRoom"
         />
-
-<!--    <item-->
-<!--        android:id="@+id/opcMejoresResultados"-->
-<!--        android:title="@string/txtOpcionMejoresResultados"-->
-<!--        android:orderInCategory="20"-->
-<!--        />-->
+    <item
+        android:id="@+id/opcPlants"
+        android:title="@string/opcPlants"
+        android:icon="@drawable/plant"
+        android:orderInCategory="10"
+        app:showAsAction="ifRoom"
+        />
     <item
         android:id="@+id/opcAbout"
         android:title="@string/aboutText"

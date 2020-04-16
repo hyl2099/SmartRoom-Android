@@ -1,4 +1,4 @@
-package com.upm.smartroom;
+package com.upm.smartroom.board;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;

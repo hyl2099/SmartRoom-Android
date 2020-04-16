@@ -9,6 +9,16 @@
         app:showAsAction="ifRoom"
         />
     <item
+        android:id="@+id/opcPlants"
+        android:title="@string/opcPlants"
+        android:icon="@drawable/plant"
+        android:orderInCategory="10"
+        app:showAsAction="ifRoom"
+        />
+
+
+
+    <item
         android:id="@+id/opcAbout"
         android:title="@string/aboutText"
         android:icon="@android:drawable/ic_menu_info_details"

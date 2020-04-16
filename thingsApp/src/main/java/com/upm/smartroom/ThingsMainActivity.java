@@ -62,7 +62,10 @@ import java.util.TimeZone;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.things.contrib.driver.bmx280.Bmx280SensorDriver;
+import com.upm.smartroom.board.Blink;
+import com.upm.smartroom.board.Speaker;
 import com.upm.smartroom.doorbell.DoorbellMsgActivity;
+import com.upm.smartroom.plant.PlantMainActivity;
 import com.upm.smartroom.state.AlarmState;
 import com.upm.smartroom.board.BoardDefaults;
 import com.upm.smartroom.board.BoardSpec;
@@ -956,13 +959,15 @@ public class ThingsMainActivity extends AppCompatActivity {
             case R.id.opcMessage:
                 startActivity(new Intent(this, DoorbellMsgActivity.class));
                 return true;
+            case R.id.opcPlants:
+                startActivity(new Intent(this, PlantMainActivity.class));
+                return true;
             case R.id.opcAbout:
                 startActivity(new Intent(this, About.class));
                 return true;
-            case R.id.sign_out_menu:
+//            case R.id.sign_out_menu:
                 //sign out
-
-                return true;
+//                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }

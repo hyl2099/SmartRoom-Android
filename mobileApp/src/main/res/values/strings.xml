@@ -5,6 +5,9 @@
     <string name="opcMessage">See New Message</string>
 
     <string name="opcPlants">See My Plants</string>
+
+    <string name="add_button">Add</string>
+
     <string name="aboutText">About</string>
     <string name="aboutMessage">This is a Android Things mobil client application.
         Using this client application you can control iMX7 pico board:

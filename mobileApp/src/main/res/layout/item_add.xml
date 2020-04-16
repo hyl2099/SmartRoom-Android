@@ -43,10 +43,19 @@
 
         <ImageView
             android:id="@+id/id_image_iv"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center"
             android:layout_below="@id/id_insert_btns_ll"
             android:layout_above="@id/id_show_url_tv"
             android:layout_centerHorizontal="true"
             />
+        <Button
+            android:id="@+id/addButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center"
+            android:gravity="center"
+            android:text="@string/add_button"
+            android:onClick="OnAddClick"/>
 </LinearLayout>

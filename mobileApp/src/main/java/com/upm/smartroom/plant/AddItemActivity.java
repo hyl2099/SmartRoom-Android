@@ -1,14 +1,19 @@
 package com.upm.smartroom.plant;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
@@ -27,6 +32,14 @@ import com.upm.smartroom.MobilMainActivity;
 import com.upm.smartroom.R;
 
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -93,7 +106,10 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
      * 初始化相关data
      */
     private void initData() {
-        rootUrl = getExternalFilesDir(Environment.DIRECTORY_PICTURES).toString();
+        //获取路径
+        rootUrl = Environment.getExternalStorageDirectory().getPath();
+//        rootUrl = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
+//        rootUrl = getExternalFilesDir(Environment.DIRECTORY_PICTURES).toString();
         //getExternalFilesDir(null);
     }
 
@@ -113,13 +129,10 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
      * 处理本地图片btn事件
      */
     private void processLocal() {
-        Intent intent = new Intent();
-        /* 开启Pictures画面Type设定为image */
-        intent.setType(IMAGE_TYPE);
-        /* 使用Intent.ACTION_GET_CONTENT这个Action */
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-        /* 取得相片后返回本画面 */
-        startActivityForResult(intent, LOCAL_IMAGE_CODE);
+        Intent i = new Intent(
+                Intent.ACTION_PICK,
+                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(i, LOCAL_IMAGE_CODE);
     }
 
     /**
@@ -145,86 +158,94 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
             String url = "";
             Bitmap bitmap = null;
             if (requestCode == LOCAL_IMAGE_CODE) {
-                Uri uri = data.getData();
-                url = uri.toString().substring(
-                        uri.toString().indexOf("///") + 2);
-                Log.e("uri", uri.toString());
-                if (url.contains(".jpg") && url.contains(".png")) {
-                    Toast.makeText(this, "请选择图片", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                bitmap = HelpUtil.getBitmapByUrl(url);
-                showImageIv.setImageBitmap(HelpUtil.getBitmapByUrl(url));
-
-                /**
-                 * 获取bitmap另一种方法
-                 *
-                 * ContentResolver cr = this.getContentResolver(); bitmap =
-                 * HelpUtil.getBitmapByUri(uri, cr);
-                 */
-
+            Uri selectedImage = data.getData();
+            try {
+                bitmap = getBitmapFromUri(this, selectedImage);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            showImageIv.setImageBitmap(bitmap);
+            Log.d(TAG,"Selected foto");
             } else if (requestCode == CAMERA_IMAGE_CODE) {
                 url = rootUrl + "/" + "IMG_" + curFormatDateStr + ".png";
                 bitmap = HelpUtil.getBitmapByUrl(url);
                 showImageIv.setImageBitmap(HelpUtil.createRotateBitmap(bitmap));
-
-                /**
-                 * 获取bitmap另一种方法
-                 *
-                 * File picture = new File(url);
-                 * Uri uri = Uri.fromFile(picture);
-                 * ContentResolver cr = this.getContentResolver();
-                 * bitmap = HelpUtil.getBitmapByUri(uri, cr);
-                 */
             }
-
             showUrlTv.setText(url);
         } else {
-            Toast.makeText(this, "没有添加图片", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No photo added!", Toast.LENGTH_SHORT).show();
         }
-
     }
 
-    class OnOkClick implements DialogInterface.OnClickListener {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            final DatabaseReference log = mDatabase.getReference("plants").push();
-            //image存入storage
-            final StorageReference imageRef = mStorage.getReference().child(log.getKey());
 
-//            imageBytes = bitmap;
+    public Bitmap getBitmapFromUri(Context context, Uri uri) throws IOException {
+        ParcelFileDescriptor parcelFileDescriptor = null;
+        FileDescriptor fileDescriptor = null;
+        Bitmap bitmap = null;
+        try {
+            parcelFileDescriptor = context.getContentResolver().openFileDescriptor(uri, "r");
+            if (parcelFileDescriptor != null && parcelFileDescriptor.getFileDescriptor() != null) {
+                fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+                //转换uri为bitmap类型
+                bitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+
+                if (parcelFileDescriptor != null) {
+                    parcelFileDescriptor.close();
+                }
+            }
+            return bitmap;
+        }
+
+
+
 //
-//            // upload image to storage
-//            UploadTask task = imageRef.putBytes(imageBytes);
-//            task.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-//                @Override
-//                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-//                    //获取下载的url，然后存入实时数据库，供客户端访问
-//                    Task<Uri> firebaseUri = taskSnapshot.getStorage().getDownloadUrl();
-//                    firebaseUri.addOnSuccessListener(new OnSuccessListener<Uri>() {
-//                        @Override
-//                        public void onSuccess(Uri uri) {
-//                            Uri downloadUrl;
-//                            downloadUrl = uri;
-//                            // mark image in the database
-//                            Log.i(TAG, "Image upload successful");
-//                            log.child("timestamp").setValue(ServerValue.TIMESTAMP);
-//                            log.child("image").setValue(downloadUrl.toString());
-//                            // process image annotations
-//                            annotateImage(log, imageBytes);
-//                        }
-//                    });
-//                }
-//            }).addOnFailureListener(new OnFailureListener() {
-//                @Override
-//                public void onFailure(@NonNull Exception e) {
-//                    // clean up this entry
-//                    Log.w(TAG, "Unable to upload image to Firebase");
-//                    log.removeValue();
-//                }
-//            });
-        }
-    }
+//    class OnAddClick implements DialogInterface.OnClickListener {
+//        @Override
+//        public void onClick(DialogInterface dialog, int which) {
+//            final DatabaseReference log = mDatabase.getReference("plants").push();
+//            //image存入storage
+//            final StorageReference imageRef = mStorage.getReference().child(log.getKey());
+//            Log.i(TAG, "Image add successful");
+//
+//
+//
+////            imageBytes = bitmap;
+////
+////            // upload image to storage
+////            UploadTask task = imageRef.putBytes(imageBytes);
+////            task.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+////                @Override
+////                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+////                    //获取下载的url，然后存入实时数据库，供客户端访问
+////                    Task<Uri> firebaseUri = taskSnapshot.getStorage().getDownloadUrl();
+////                    firebaseUri.addOnSuccessListener(new OnSuccessListener<Uri>() {
+////                        @Override
+////                        public void onSuccess(Uri uri) {
+////                            Uri downloadUrl;
+////                            downloadUrl = uri;
+////                            // mark image in the database
+////                            Log.i(TAG, "Image upload successful");
+////                            log.child("timestamp").setValue(ServerValue.TIMESTAMP);
+////                            log.child("image").setValue(downloadUrl.toString());
+////                            // process image annotations
+////                            annotateImage(log, imageBytes);
+////                        }
+////                    });
+////                }
+////            }).addOnFailureListener(new OnFailureListener() {
+////                @Override
+////                public void onFailure(@NonNull Exception e) {
+////                    // clean up this entry
+////                    Log.w(TAG, "Unable to upload image to Firebase");
+////                    log.removeValue();
+////                }
+////            });
+//        }
+//    }
 
 
     /**

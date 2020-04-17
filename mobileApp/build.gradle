@@ -34,6 +34,11 @@ dependencies {
     implementation 'com.firebaseui:firebase-ui-database:3.2.1'
     implementation 'com.firebaseui:firebase-ui-storage:3.2.1'
 
+
+    implementation 'com.google.apis:google-api-services-vision:v1-rev9-1.21.0'
+    implementation 'com.google.api-client:google-api-client-android:1.22.0' exclude module: 'httpclient'
+    implementation 'com.google.http-client:google-http-client-gson:1.22.0' exclude module: 'httpclient'
+
     implementation 'com.github.bumptech.glide:glide:4.11.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'

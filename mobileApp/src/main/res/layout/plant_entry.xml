@@ -8,53 +8,73 @@
     android:paddingBottom="@dimen/activity_vertical_margin">
 
     <ImageView
-        android:layout_width="220dp"
-        android:layout_height="match_parent"
-        android:id="@+id/imageView1" />
+        android:id="@+id/image"
+        android:layout_width="150dp"
+        android:layout_height="match_parent" />
 
     <LinearLayout
         android:orientation="vertical"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_margin="10dp">
+        android:layout_width="190dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp">
 
+
+        <TextView
+            android:id="@+id/name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:text="Humidity Need"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:id="@+id/humidityNeed" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:id="@+id/texTemperature" />
-
+            android:text="Current Temperature"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:id="@+id/texHumidity" />
-
-
+            android:id="@+id/temperature" />
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:id="@+id/textView1" />
-
+            android:text="Current Humidity"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/textView2" />
+            android:id="@+id/humidity" />
+    </LinearLayout>
 
-        <com.getbase.floatingactionbutton.FloatingActionButton
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center|center">
+        <ImageButton
+            android:id="@+id/item_edit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center"
+            android:onClick="onEditClick"
+            android:src="@drawable/ic_delete"/>
+        <ImageButton
             android:id="@+id/item_delete"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="onDeleteClick"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true"
-            android:layout_margin="16dp"
-            android:clickable="true"
-            android:src="@drawable/ic_delete"
-            tools:ignore="OnClick" />
+            android:src="@drawable/ic_edit"
+            tools:ignore="OnDeleteClick"/>
+
     </LinearLayout>
 
 </LinearLayout>

@@ -1,49 +1,46 @@
 package com.upm.smartroom.plant;
 
-import java.util.Map;
-
 public class PlantEntry {
-    float temperature;
-    float humidity;
-    float humidityNeed;
+    String temperature;
+    String humidity;
+    String humidityNeed;
     Long timestamp;
     String image;
-    Map<String, Float> annotations;
+    String name;
 
 
     public PlantEntry() {
     }
 
-    public PlantEntry(float temperature, float humidity, float humidityNeed, Long timestamp, String image, Map<String, Float> annotations) {
+    public PlantEntry(String temperature, String humidity, String humidityNeed, Long timestamp, String image) {
         this.temperature = temperature;
         this.humidity = humidity;
         this.humidityNeed = humidityNeed;
         this.timestamp = timestamp;
         this.image = image;
-        this.annotations = annotations;
     }
 
-    public float getTemperature() {
+    public String getTemperature() {
         return temperature;
     }
 
-    public void setTemperature(float temperature) {
+    public void setTemperature(String temperature) {
         this.temperature = temperature;
     }
 
-    public float getHumidity() {
+    public String getHumidity() {
         return humidity;
     }
 
-    public void setHumidity(float humidity) {
+    public void setHumidity(String humidity) {
         this.humidity = humidity;
     }
 
-    public float getHumidityNeed() {
+    public String getHumidityNeed() {
         return humidityNeed;
     }
 
-    public void setHumidityNeed(float humidityNeed) {
+    public void setHumidityNeed(String humidityNeed) {
         this.humidityNeed = humidityNeed;
     }
 
@@ -63,11 +60,11 @@ public class PlantEntry {
         this.image = image;
     }
 
-    public Map<String, Float> getAnnotations() {
-        return annotations;
+    public String getName() {
+        return name;
     }
 
-    public void setAnnotations(Map<String, Float> annotations) {
-        this.annotations = annotations;
+    public void setName(String name) {
+        this.name = name;
     }
 }

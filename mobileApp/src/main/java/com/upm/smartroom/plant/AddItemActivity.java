@@ -1,46 +1,41 @@
 package com.upm.smartroom.plant;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.ParcelFileDescriptor;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.upm.smartroom.CloudVisionUtils;
 import com.upm.smartroom.MobilMainActivity;
 import com.upm.smartroom.R;
 
-import java.io.File;
+import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Calendar;
 import java.util.Map;
 
 
@@ -48,14 +43,20 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
     private static final String TAG = MobilMainActivity.class.getSimpleName();
 
     private static final int LOCAL_IMAGE_CODE = 1;
-    private static final int CAMERA_IMAGE_CODE = 2;
-    private static final String IMAGE_TYPE = "image/*";
-    private String rootUrl = null;
     private String curFormatDateStr = null;
 
-    private Button localImgBtn, cameraImgBtn;
+    private Bitmap bitmap;
+
+
+    private EditText add_text_name;
+    private EditText add_text_humidityNeed;
+    private Button localImgBtn;
     private TextView showUrlTv;
     private ImageView showImageIv;
+    private Button addBtn;
+
+    private String plantName;
+    private String humidityNeed;
 
     private FirebaseDatabase mDatabase;
     private FirebaseStorage mStorage;
@@ -81,8 +82,9 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
         final DatabaseReference description = mDatabase.getReference("logs").push();
         final StorageReference imageRef = mStorage.getReference().child(description.getKey());
 
+
+        bitmap = null;
         findById();
-        initData();
     }
 
     /**
@@ -90,27 +92,18 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
      */
     private void findById() {
         localImgBtn = (Button) this.findViewById(R.id.id_local_img_btn);
-        cameraImgBtn = (Button) this.findViewById(R.id.id_camera_img_btn);
-        showUrlTv = (TextView) this.findViewById(R.id.id_show_url_tv);
         showImageIv = (ImageView) this.findViewById(R.id.id_image_iv);
+        addBtn = (Button) this.findViewById(R.id.addButton);
+
+        add_text_name = (EditText) findViewById(R.id.add_text_name);
+        add_text_humidityNeed = (EditText) findViewById(R.id.add_text_humidityNeed);
 
         mCloudThread = new HandlerThread("CloudThread");
         mCloudThread.start();
         mCloudHandler = new Handler(mCloudThread.getLooper());
 
         localImgBtn.setOnClickListener(this);
-        cameraImgBtn.setOnClickListener(this);
-    }
-
-    /**
-     * 初始化相关data
-     */
-    private void initData() {
-        //获取路径
-        rootUrl = Environment.getExternalStorageDirectory().getPath();
-//        rootUrl = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
-//        rootUrl = getExternalFilesDir(Environment.DIRECTORY_PICTURES).toString();
-        //getExternalFilesDir(null);
+        addBtn.setOnClickListener(this);
     }
 
     @Override
@@ -119,8 +112,10 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
             case R.id.id_local_img_btn:
                 processLocal();
                 break;
-            case R.id.id_camera_img_btn:
-                processCamera();
+            case R.id.addButton:
+                addPlantInfo();
+                plantName = add_text_name.getText().toString();
+                humidityNeed = add_text_humidityNeed.getText().toString();
                 break;
         }
     }
@@ -135,19 +130,6 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
         startActivityForResult(i, LOCAL_IMAGE_CODE);
     }
 
-    /**
-     * 处理camera图片btn事件
-     */
-    private void processCamera() {
-        curFormatDateStr = HelpUtil.getDateFormatString(Calendar.getInstance()
-                .getTime());
-        String fileName = "IMG_" + curFormatDateStr + ".png";
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        intent.putExtra(MediaStore.EXTRA_OUTPUT,
-                Uri.fromFile(new File(rootUrl, fileName)));
-        intent.putExtra("fileName", fileName);
-        startActivityForResult(intent, CAMERA_IMAGE_CODE);
-    }
 
     /**
      * 处理Activity跳转后返回事件
@@ -156,27 +138,22 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             String url = "";
-            Bitmap bitmap = null;
             if (requestCode == LOCAL_IMAGE_CODE) {
-            Uri selectedImage = data.getData();
-            try {
-                bitmap = getBitmapFromUri(this, selectedImage);
-            } catch (IOException e) {
-                e.printStackTrace();
+                Uri selectedImage = data.getData();
+                try {
+                    bitmap = getBitmapFromUri(this, selectedImage);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Toast.makeText(this, "Please check if there is permission for storage!", Toast.LENGTH_SHORT).show();
+                }
+                showImageIv.setImageBitmap(bitmap);
+                Log.d(TAG, "Selected foto");
             }
-            showImageIv.setImageBitmap(bitmap);
-            Log.d(TAG,"Selected foto");
-            } else if (requestCode == CAMERA_IMAGE_CODE) {
-                url = rootUrl + "/" + "IMG_" + curFormatDateStr + ".png";
-                bitmap = HelpUtil.getBitmapByUrl(url);
-                showImageIv.setImageBitmap(HelpUtil.createRotateBitmap(bitmap));
-            }
-            showUrlTv.setText(url);
+//            showUrlTv.setText(url);
         } else {
             Toast.makeText(this, "No photo added!", Toast.LENGTH_SHORT).show();
         }
     }
-
 
     public Bitmap getBitmapFromUri(Context context, Uri uri) throws IOException {
         ParcelFileDescriptor parcelFileDescriptor = null;
@@ -192,7 +169,6 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
         } catch (Exception e) {
             e.printStackTrace();
         }finally {
-
                 if (parcelFileDescriptor != null) {
                     parcelFileDescriptor.close();
                 }
@@ -200,75 +176,84 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
             return bitmap;
         }
 
+    public byte[] bitmap2Bytes(Bitmap bm) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.PNG, 100, baos);
+        return baos.toByteArray();
+    }
 
+    public void addPlantInfo() {
+        plantName = add_text_name.getText().toString();
+        humidityNeed = add_text_humidityNeed.getText().toString();
+        final DatabaseReference plants = mDatabase.getReference("plants").push();
+        //image存入storage
+        final StorageReference imageRef = mStorage.getReference().child(plants.getKey());
+        Log.i(TAG, "Image add successful");
 
-//
-//    class OnAddClick implements DialogInterface.OnClickListener {
-//        @Override
-//        public void onClick(DialogInterface dialog, int which) {
-//            final DatabaseReference log = mDatabase.getReference("plants").push();
-//            //image存入storage
-//            final StorageReference imageRef = mStorage.getReference().child(log.getKey());
-//            Log.i(TAG, "Image add successful");
-//
-//
-//
-////            imageBytes = bitmap;
-////
-////            // upload image to storage
-////            UploadTask task = imageRef.putBytes(imageBytes);
-////            task.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-////                @Override
-////                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-////                    //获取下载的url，然后存入实时数据库，供客户端访问
-////                    Task<Uri> firebaseUri = taskSnapshot.getStorage().getDownloadUrl();
-////                    firebaseUri.addOnSuccessListener(new OnSuccessListener<Uri>() {
-////                        @Override
-////                        public void onSuccess(Uri uri) {
-////                            Uri downloadUrl;
-////                            downloadUrl = uri;
-////                            // mark image in the database
-////                            Log.i(TAG, "Image upload successful");
-////                            log.child("timestamp").setValue(ServerValue.TIMESTAMP);
-////                            log.child("image").setValue(downloadUrl.toString());
-////                            // process image annotations
-////                            annotateImage(log, imageBytes);
-////                        }
-////                    });
-////                }
-////            }).addOnFailureListener(new OnFailureListener() {
-////                @Override
-////                public void onFailure(@NonNull Exception e) {
-////                    // clean up this entry
-////                    Log.w(TAG, "Unable to upload image to Firebase");
-////                    log.removeValue();
-////                }
-////            });
-//        }
-//    }
+        final byte[] imageBytes = bitmap2Bytes(bitmap);
+
+        // upload image to storage
+        UploadTask task = imageRef.putBytes(imageBytes);
+        task.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                //获取下载的url，然后存入实时数据库，供客户端访问
+                Task<Uri> firebaseUri = taskSnapshot.getStorage().getDownloadUrl();
+
+                firebaseUri.addOnSuccessListener(new OnSuccessListener<Uri>() {
+                    @Override
+                    public void onSuccess(Uri uri) {
+                        Uri downloadUrl;
+                        downloadUrl = uri;
+                        // mark image in the database
+                        Log.i(TAG, "Image upload successful");
+                        plants.child("timestamp").setValue(ServerValue.TIMESTAMP);
+                        plants.child("name").setValue(plantName);
+                        plants.child("humidityNeed").setValue(humidityNeed);
+                        plants.child("image").setValue(downloadUrl.toString());
+                        // process image annotations
+//                        annotateImage(log, imageBytes);
+                    }
+                });
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                // clean up this entry
+                Log.w(TAG, "Unable to upload image to Firebase");
+                plants.removeValue();
+            }
+        });
+        returnHome(this);
+    }
 
 
     /**
      * Process image contents with Cloud Vision.
      */
-//    private void annotateImage(final DatabaseReference ref, final byte[] imageBytes) {
-//        mCloudHandler.post(new Runnable() {
-//            @Override
-//            public void run() {
-//                Log.d(TAG, "sending image to cloud vision");
-//                // annotate image by uploading to Cloud Vision API
-//                try {
-//                    Map<String, Float> annotations = CloudVisionUtils.annotateImage(imageBytes);
-//                    Log.d(TAG, "cloud vision annotations:" + annotations);
-//                    if (annotations != null) {
-//                        ref.child("annotations").setValue(annotations);
-//                    }
-//                } catch (IOException e) {
-//                    Log.e(TAG, "Cloud Vison API error: ", e);
-//                }
-//            }
-//        });
-//    }
+    private void annotateImage(final DatabaseReference ref, final byte[] imageBytes) {
+        mCloudHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "sending image to cloud vision");
+                // annotate image by uploading to Cloud Vision API
+                try {
+                    Map<String, Float> annotations = CloudVisionUtils.annotateImage(imageBytes);
+                    Log.d(TAG, "cloud vision annotations:" + annotations);
+                    if (annotations != null) {
+                        ref.child("annotations").setValue(annotations);
+                    }
+                } catch (IOException e) {
+                    Log.e(TAG, "Cloud Vison API error: ", e);
+                }
+            }
+        });
+    }
 
+    public static void returnHome(Context context) {
+        Intent intent = new Intent(context, PlantMainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(intent);
+    }
 
 }

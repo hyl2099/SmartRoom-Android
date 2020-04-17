@@ -187,7 +187,7 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
         humidityNeed = add_text_humidityNeed.getText().toString();
         final DatabaseReference plants = mDatabase.getReference("plants").push();
         //image存入storage
-        final StorageReference imageRef = mStorage.getReference().child(plants.getKey());
+        final StorageReference imageRef = mStorage.getReference("plants").child(plants.getKey());
         Log.i(TAG, "Image add successful");
 
         final byte[] imageBytes = bitmap2Bytes(bitmap);

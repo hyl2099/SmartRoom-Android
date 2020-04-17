@@ -5,20 +5,26 @@ import android.content.DialogInterface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.upm.smartroom.GlideApp;
 import com.upm.smartroom.R;
+import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 
 
 public class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, PlantEntryAdapter.PlantEntryViewHolder> {
@@ -31,11 +37,10 @@ public class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, Plant
         public final ImageView image;
         public final TextView name;
         public final TextView humidityNeed;
-        public final TextView temperature;
-        public final TextView humidity;
-
-        private DatabaseReference ref;
-
+//        public final TextView temperature;
+//        public final TextView humidity;
+        public final ImageButton itemEdit;
+        public final ImageButton itemDelete;
 
 
         public PlantEntryViewHolder(View itemView) {
@@ -43,23 +48,27 @@ public class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, Plant
             this.image = (ImageView) itemView.findViewById(R.id.image);
             this.name = (TextView) itemView.findViewById(R.id.name);
             this.humidityNeed = (TextView) itemView.findViewById(R.id.humidityNeed);
-            this.temperature = (TextView) itemView.findViewById(R.id.temperature);
-            this.humidity = (TextView) itemView.findViewById(R.id.humidity);
+//            this.temperature = (TextView) itemView.findViewById(R.id.temperature);
+//            this.humidity = (TextView) itemView.findViewById(R.id.humidity);
+
+            this.itemDelete = (ImageButton)itemView.findViewById(R.id.item_delete);
+            this.itemEdit = (ImageButton)itemView.findViewById(R.id.item_edit);
         }
 
     }
 
     private Context mApplicationContext;
     private FirebaseStorage mFirebaseStorage;
+    private DatabaseReference databaseRef;
 
     //当前view， ref databaseRef
     public PlantEntryAdapter(Context context, DatabaseReference ref) {
         super(new FirebaseRecyclerOptions.Builder<PlantEntry>()
                 .setQuery(ref, PlantEntry.class)
                 .build());
-        ref = ref;
         mApplicationContext = context.getApplicationContext();
         mFirebaseStorage = FirebaseStorage.getInstance();
+        databaseRef = FirebaseDatabase.getInstance().getReference().child("plants");
     }
 
     @NonNull
@@ -69,14 +78,11 @@ public class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, Plant
         View entryView = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.plant_entry, parent, false);
 
-        PlantEntryViewHolder viewHolder = new PlantEntryViewHolder(entryView);
-
-        //return new PlantEntryViewHolder(entryView);
-        return viewHolder;
+        return new PlantEntryViewHolder(entryView);
     }
 
     @Override
-    protected void onBindViewHolder(PlantEntryViewHolder holder, int position, PlantEntry model) {
+    protected void onBindViewHolder(final PlantEntryViewHolder holder, int position, PlantEntry model) {
         // Display the timestamp
         //显示上次浇水时间
 //        CharSequence prettyTime = DateUtils.getRelativeDateTimeString(mApplicationContext,
@@ -95,12 +101,15 @@ public class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, Plant
         //display name
         holder.name.setText(model.getName());
         //display temperature
-        holder.temperature.setText(model.getTemperature());
+//        holder.temperature.setText(model.getTemperature());
         ////display humidity
-        holder.humidity.setText(model.getHumidity());
+//        holder.humidity.setText(model.getHumidity());
         //display humidityNeed
         holder.humidityNeed.setText(model.getHumidityNeed());
     }
 
+    private void deleteRef(String id) {
+        databaseRef.child(id).removeValue();
+    }
 
 }

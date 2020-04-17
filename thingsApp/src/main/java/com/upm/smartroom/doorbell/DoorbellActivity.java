@@ -176,9 +176,9 @@ public class DoorbellActivity extends Activity {
     private void onPictureTaken(final byte[] imageBytes) {
         if (imageBytes != null) {
             //将log存在firebase 实时数据库
-            final DatabaseReference log = mDatabase.getReference("logs").push();
+            final DatabaseReference doorbell = mDatabase.getReference("doorbell").push();
             //image存入storage
-            final StorageReference imageRef = mStorage.getReference().child(log.getKey());
+            final StorageReference imageRef = mStorage.getReference("doorbell").child(doorbell.getKey());
 
             // upload image to storage
             UploadTask task = imageRef.putBytes(imageBytes);
@@ -194,10 +194,10 @@ public class DoorbellActivity extends Activity {
                             downloadUrl = uri;
                             // mark image in the database
                             Log.i(TAG, "Image upload successful");
-                            log.child("timestamp").setValue(ServerValue.TIMESTAMP);
-                            log.child("image").setValue(downloadUrl.toString());
+                            doorbell.child("timestamp").setValue(ServerValue.TIMESTAMP);
+                            doorbell.child("image").setValue(downloadUrl.toString());
                             // process image annotations
-                            annotateImage(log, imageBytes);
+                            annotateImage(doorbell, imageBytes);
                         }
                     });
                 }
@@ -206,7 +206,7 @@ public class DoorbellActivity extends Activity {
                 public void onFailure(@NonNull Exception e) {
                     // clean up this entry
                     Log.w(TAG, "Unable to upload image to Firebase");
-                    log.removeValue();
+                    doorbell.removeValue();
                 }
             });
         }

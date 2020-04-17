@@ -34,7 +34,6 @@ public class PlantMainActivity extends AppCompatActivity {
 
         //定义antivity_main 中的plantView
         mRecyclerView = (RecyclerView) findViewById(R.id.plantView);
-        // Show most recent items at the top
         LinearLayoutManager layoutManager =
                 new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, true);
         mRecyclerView.setLayoutManager(layoutManager);
@@ -67,14 +66,6 @@ public class PlantMainActivity extends AppCompatActivity {
 
     public void onAddClick(View view) {
         startActivity(new Intent(this, AddItemActivity.class));
-    }
-
-    public void onDeleteClick(View view){
-        //点击删除，获得ref position的key，然后删除
-    }
-
-    public void onEditClick(View view){
-        //点击编辑，获得ref position的key，初始item——add页面
     }
 
     @Override

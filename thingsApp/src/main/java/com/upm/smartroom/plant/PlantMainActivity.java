@@ -70,23 +70,6 @@ public class PlantMainActivity extends AppCompatActivity {
         mAdapter.stopListening();
     }
 
-    AlertDialog addDialog;
-    public void onAddClick(View view) {
-        addDialog = new AlertDialog.Builder(this)
-                .setTitle("Add Item")
-                .setView(R.layout.item_add)
-                .setPositiveButton(android.R.string.ok, (DialogInterface.OnClickListener) new PlantMainActivity.OnOkClick())
-                .create();
-        addDialog.show();
-    }
-
-    class OnOkClick implements DialogInterface.OnClickListener {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            ref.removeValue();
-        }
-    }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {

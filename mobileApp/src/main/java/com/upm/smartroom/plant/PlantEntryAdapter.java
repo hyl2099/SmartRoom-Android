@@ -11,8 +11,10 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -27,6 +29,9 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.upm.smartroom.GlideApp;
 import com.upm.smartroom.R;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, PlantEntryAdapter.PlantEntryViewHolder> {
@@ -45,6 +50,7 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
 //        public final TextView humidity;
         public final ImageButton itemEdit;
         public final ImageButton itemDelete;
+        public final Switch waterSwitch;
 
         public PlantEntryViewHolder(View itemView) {
             super(itemView);
@@ -56,6 +62,7 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
 
             this.itemDelete = (ImageButton)itemView.findViewById(R.id.item_delete);
             this.itemEdit = (ImageButton)itemView.findViewById(R.id.item_edit);
+            this.waterSwitch = (Switch)itemView.findViewById(R.id.waterSwitch);
         }
     }
 
@@ -64,6 +71,7 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
     private Context mApplicationContext;
     private FirebaseStorage mFirebaseStorage;
     private DatabaseReference databaseRef;
+    private DatabaseReference mWaterDatabaseReference;
 
 
     //当前view， ref databaseRef
@@ -74,6 +82,8 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
         mApplicationContext = context.getApplicationContext();
         mFirebaseStorage = FirebaseStorage.getInstance();
         databaseRef = FirebaseDatabase.getInstance().getReference().child("plants");
+
+
     }
 
     @NonNull
@@ -112,6 +122,7 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
         //display humidityNeed
         holder.humidityNeed.setText(model.getHumidityNeed());
         final String key= getRef(position).getKey();
+        mWaterDatabaseReference = databaseRef.child(key).child("switchState");
 
         //when click item delete button
         holder.itemDelete.setOnClickListener(new View.OnClickListener() {
@@ -148,7 +159,7 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
                 Log.e("TAG", "EDIT`````````````````````````````````````````````````");
             }
         });
-        //when click the iten show buttons
+        //when click the item show buttons
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v)
@@ -157,6 +168,26 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
                 holder.itemEdit.setVisibility(View.VISIBLE);
             }
         });
+
+        holder.waterSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mWaterDatabaseReference.getKey(), "1");
+                    databaseRef.child(key).updateChildren(childUpdates);
+                    Log.d("WATER", "switch check Switch is on!!!");
+                    holder.waterSwitch.setChecked(true);
+                }else {
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put(mWaterDatabaseReference.getKey(), "0");
+                    databaseRef.child(key).updateChildren(childUpdates);
+                    Log.d("WATER", "switch check Switch is off!!!");
+                    holder.waterSwitch.setChecked(false);
+                }
+            }
+        });
+
     }
 
     private void deleteRef(String id) {

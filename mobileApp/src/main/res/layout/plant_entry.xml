@@ -65,15 +65,14 @@
             android:id="@+id/item_edit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|center"
-            android:onClick="onEditClick"
-            android:src="@drawable/ic_delete"/>
+            android:src="@drawable/ic_edit"
+            android:visibility="gone"/>
         <ImageButton
             android:id="@+id/item_delete"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="onDeleteClick"
-            android:src="@drawable/ic_edit"/>
+            android:src="@drawable/ic_delete"
+            android:visibility="gone"/>
 
     </LinearLayout>
 

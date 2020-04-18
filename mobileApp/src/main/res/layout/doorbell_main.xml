@@ -11,10 +11,10 @@ tools:context=".MobilMainActivity">
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
     <com.getbase.floatingactionbutton.FloatingActionButton
-        android:id="@+id/item_delete"
+        android:id="@+id/item_all_delete"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:onClick="onDeleteClick"
+        android:onClick="onDeleteAllClick"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"

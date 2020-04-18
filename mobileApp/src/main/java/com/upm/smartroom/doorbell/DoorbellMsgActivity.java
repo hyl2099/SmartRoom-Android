@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.storage.FirebaseStorage;
 import com.upm.smartroom.R;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -20,6 +21,7 @@ public class DoorbellMsgActivity extends AppCompatActivity {
     private DoorbellEntryAdapter mAdapter;
 
     private DatabaseReference ref;
+    private FirebaseStorage mFirebaseStorage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +31,7 @@ public class DoorbellMsgActivity extends AppCompatActivity {
         // Reference for doorbell events from embedded device
         //FirebaseDatabase
         ref = FirebaseDatabase.getInstance().getReference().child("doorbellRecords");
+        mFirebaseStorage = FirebaseStorage.getInstance();
 
         //定义antivity_main 中的doorbellView
         mRecyclerView = (RecyclerView) findViewById(R.id.doorbellView);
@@ -69,7 +72,7 @@ public class DoorbellMsgActivity extends AppCompatActivity {
     }
 
     AlertDialog deleteDialog;
-    public void onDeleteClick(View view) {
+    public void onDeleteAllClick(View view) {
         deleteDialog = new AlertDialog.Builder(this)
                 .setTitle("Delete Item")
                 .setView(R.layout.item_delete)
@@ -82,6 +85,7 @@ public class DoorbellMsgActivity extends AppCompatActivity {
         @Override
         public void onClick(DialogInterface dialog, int which) {
             ref.removeValue();
+            mFirebaseStorage.getReference("plants").delete();
         }
     }
 

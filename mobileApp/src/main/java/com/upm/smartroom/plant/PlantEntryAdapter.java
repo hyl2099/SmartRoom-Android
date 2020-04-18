@@ -1,19 +1,22 @@
 package com.upm.smartroom.plant;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
-import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
@@ -24,10 +27,11 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.upm.smartroom.GlideApp;
 import com.upm.smartroom.R;
-import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 
 
-public class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, PlantEntryAdapter.PlantEntryViewHolder> {
+public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, PlantEntryAdapter.PlantEntryViewHolder> {
+
+    protected abstract void PlantEntryViewHolder(PlantEntryViewHolder viewHolder, PlantEntry model, int position);
 
     /**
      * ViewHolder for each plant entry
@@ -42,7 +46,6 @@ public class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, Plant
         public final ImageButton itemEdit;
         public final ImageButton itemDelete;
 
-
         public PlantEntryViewHolder(View itemView) {
             super(itemView);
             this.image = (ImageView) itemView.findViewById(R.id.image);
@@ -54,12 +57,14 @@ public class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, Plant
             this.itemDelete = (ImageButton)itemView.findViewById(R.id.item_delete);
             this.itemEdit = (ImageButton)itemView.findViewById(R.id.item_edit);
         }
-
     }
+
+
 
     private Context mApplicationContext;
     private FirebaseStorage mFirebaseStorage;
     private DatabaseReference databaseRef;
+
 
     //当前view， ref databaseRef
     public PlantEntryAdapter(Context context, DatabaseReference ref) {
@@ -82,7 +87,7 @@ public class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, Plant
     }
 
     @Override
-    protected void onBindViewHolder(final PlantEntryViewHolder holder, int position, PlantEntry model) {
+    protected void onBindViewHolder(final PlantEntryViewHolder holder, final int position, PlantEntry model) {
         // Display the timestamp
         //显示上次浇水时间
 //        CharSequence prettyTime = DateUtils.getRelativeDateTimeString(mApplicationContext,
@@ -106,10 +111,57 @@ public class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEntry, Plant
 //        holder.humidity.setText(model.getHumidity());
         //display humidityNeed
         holder.humidityNeed.setText(model.getHumidityNeed());
+        final String key= getRef(position).getKey();
+
+        //when click item delete button
+        holder.itemDelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.e("TAG","DELETE`````````````````````````````````````````````````");
+                databaseRef.child(key).removeValue();
+                //此处还应删除storage里的图片。
+                //后面在写
+
+
+                //删除对话框有问题，Builder参数应该是activity的context，但是这里一直有问题，以后再研究。
+//                new AlertDialog.Builder(PlantMainActivity.this)
+//                        .setTitle("Delete Item")
+//                        .setMessage("Sure")
+//                        .setPositiveButton("OK",
+//                            new DialogInterface.OnClickListener() {
+//                                public void onClick(DialogInterface dialog,
+//                                                    int whichButton) {
+//                                    databaseRef.child(key).removeValue();
+//                                }
+//                            })
+//                        .setNegativeButton("Cancel", null)
+//                        .show();
+
+            }
+        });
+
+
+        //when click item edit button
+        holder.itemEdit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.e("TAG", "EDIT`````````````````````````````````````````````````");
+            }
+        });
+        //when click the iten show buttons
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v)
+            {
+                holder.itemDelete.setVisibility(View.VISIBLE);
+                holder.itemEdit.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     private void deleteRef(String id) {
         databaseRef.child(id).removeValue();
     }
+
 
 }

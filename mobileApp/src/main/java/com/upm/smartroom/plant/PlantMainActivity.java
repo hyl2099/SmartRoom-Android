@@ -1,17 +1,22 @@
 package com.upm.smartroom.plant;
 
+
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 ;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FirebaseStorage;
 import com.upm.smartroom.MobilMainActivity;
 import com.upm.smartroom.R;
 
@@ -21,6 +26,9 @@ public class PlantMainActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private PlantEntryAdapter mAdapter;
     private DatabaseReference ref;
+    private FirebaseStorage mFirebaseStorage;
+    private Context mApplicationContext;
+
 
 
     @Override
@@ -37,10 +45,12 @@ public class PlantMainActivity extends AppCompatActivity {
         LinearLayoutManager layoutManager =
                 new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, true);
         mRecyclerView.setLayoutManager(layoutManager);
-
-        mAdapter = new PlantEntryAdapter(this, ref);
+        mAdapter = new PlantEntryAdapter(this, ref){
+            @Override
+            protected void PlantEntryViewHolder(final PlantEntryViewHolder viewHolder, PlantEntry model, final int position) {
+            }
+        };
         mRecyclerView.setAdapter(mAdapter);
-
     }
 
     @Override
@@ -87,3 +97,5 @@ public class PlantMainActivity extends AppCompatActivity {
 
 
 }
+
+

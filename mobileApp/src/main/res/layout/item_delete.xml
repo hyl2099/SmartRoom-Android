@@ -3,9 +3,4 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
-<!--    <EditText-->
-<!--        android:id="@+id/delete_text"-->
-<!--        android:hint="content here"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"/>-->
 </LinearLayout>

@@ -97,7 +97,6 @@ public class ThingsMainActivity extends AppCompatActivity {
     private TextView humidity;
     private TextView wind;
     //data from sensor
-//    private TextView bmp280Txt;
     private ImageView bmp280Image;
     private TextView temperatureDisplay;
     private TextView barometerDisplay;
@@ -109,8 +108,6 @@ public class ThingsMainActivity extends AppCompatActivity {
     private Switch alarmSwitcher;
     private Switch lockSwitcher;
     private Switch switchSwitcher;
-
-
 
 
     // btb Firebase database variables
@@ -370,7 +367,6 @@ public class ThingsMainActivity extends AppCompatActivity {
                     somethingIsMoving = SOMETHING_MOVING;
                     Log.e("有人来了", gpio.getValue() + ":111111111111111111111111111111111111111111111111111111111111111111111111111111");
                     startMovementAlarm();
-                    mCamera.takePicture();
                 } else {
                     somethingIsMoving = NOTHING_MOVING;
                     Log.e("没有人", gpio.getValue() + ":2222222222222222222222222222222222222222222222222222222222222222222222222");
@@ -688,17 +684,8 @@ public class ThingsMainActivity extends AppCompatActivity {
             //LED 灯，接在GPIO6_IO14口。
             PeripheralManager pio = PeripheralManager.getInstance();
             led = pio.openGpio(BoardDefaults.getGPIOForLED());
-//            PeripheralManager rgbLedPioR = PeripheralManager.getInstance();
-//            PeripheralManager rgbLedPioG = PeripheralManager.getInstance();
-//            PeripheralManager rgbLedPioB = PeripheralManager.getInstance();
-//            rgbLed.set(0, rgbLedPioR.openGpio(BoardDefaults.getGPIOForRGBLED().get(0)));
-//            rgbLed.set(1, rgbLedPioG.openGpio(BoardDefaults.getGPIOForRGBLED().get(1)));
-//            rgbLed.set(2, rgbLedPioB.openGpio(BoardDefaults.getGPIOForRGBLED().get(2)));
             //开机不点亮LED灯
             led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-//            rgbLed.get(0).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
-//            rgbLed.get(1).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
-//            rgbLed.get(2).setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
 //            初始化 BMP280Sensor
             mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
             try {
@@ -1139,9 +1126,10 @@ public class ThingsMainActivity extends AppCompatActivity {
         //stopBuzzer();
         if(alarmState == ALARMON){
             Log.d(TAG, "startMovementAlarm Alarm ON11111111111111111111111111111111111111111!!!");
-                Log.d(TAG, "Someoen is coming11111111111111111111111111111111111111111!!!");
+                Log.d(TAG, "Someoen is coming111111111111111111111111111-----ook picture11111111111111!!!");
                 try {
                     startBuzzer();
+                    mCamera.takePicture();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

@@ -1,9 +1,11 @@
 package com.upm.smartroom.plant;
 
+
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 
@@ -11,21 +13,23 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
+;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FirebaseStorage;
 import com.upm.smartroom.R;
 import com.upm.smartroom.ThingsMainActivity;
-import com.upm.smartroom.doorbell.DoorbellEntryAdapter;
-import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 
 public class PlantMainActivity extends AppCompatActivity {
-    private static final String TAG = "MainActivity";
 
+    private static final String TAG = ThingsMainActivity.class.getSimpleName();
     private RecyclerView mRecyclerView;
     private PlantEntryAdapter mAdapter;
-
     private DatabaseReference ref;
+    private FirebaseStorage mFirebaseStorage;
+    private Context mApplicationContext;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,18 +38,18 @@ public class PlantMainActivity extends AppCompatActivity {
         //在子Activity的onCreate中，将返回键显示出来；
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        // Reference for doorbell events from embedded device
-        //FirebaseDatabase
         ref = FirebaseDatabase.getInstance().getReference().child("plants");
 
-        //定义antivity_main 中的doorbellView
+        //定义antivity_main 中的plantView
         mRecyclerView = (RecyclerView) findViewById(R.id.plantView);
-        // Show most recent items at the top
         LinearLayoutManager layoutManager =
                 new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, true);
         mRecyclerView.setLayoutManager(layoutManager);
-
-        mAdapter = new PlantEntryAdapter(this, ref);
+        mAdapter = new PlantEntryAdapter(this, ref){
+            @Override
+            protected void PlantEntryViewHolder(final PlantEntryViewHolder viewHolder, PlantEntry model, final int position) {
+            }
+        };
         mRecyclerView.setAdapter(mAdapter);
     }
 
@@ -85,4 +89,7 @@ public class PlantMainActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         context.startActivity(intent);
     }
+
 }
+
+

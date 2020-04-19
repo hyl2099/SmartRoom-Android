@@ -175,7 +175,7 @@ public class DoorbellActivity extends Activity {
      */
     private void onPictureTaken(final byte[] imageBytes) {
         if (imageBytes != null) {
-            //将log存在firebase 实时数据库
+            //将doorbell存在firebase 实时数据库
             final DatabaseReference doorbell = mDatabase.getReference("doorbell").push();
             //image存入storage
             final StorageReference imageRef = mStorage.getReference("doorbell").child(doorbell.getKey());

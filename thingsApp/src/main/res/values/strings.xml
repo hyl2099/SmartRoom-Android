@@ -6,6 +6,7 @@
     <string name="barometer_text">Barometer kPa</string>
 
     <string name="opcMessage">See New Message</string>
+    <string name="opcPlants">See Plants</string>
     <string name="add_button">Add</string>
 
     <string name="aboutText">About</string>

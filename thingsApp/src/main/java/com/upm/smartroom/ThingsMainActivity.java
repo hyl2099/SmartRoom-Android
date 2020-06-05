@@ -1244,6 +1244,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         String indoorTemperature = DECIMAL_FORMAT.format(mLastTemperature);
 //        Float indoorTemperature = mLastTemperature;
         String indoorHumidity = DECIMAL_FORMAT.format(mLastPressure*0.1);
+
         JSONObject temperatureData = new JSONObject();
         temperatureData.put("temperatureIndoor", indoorTemperature);
         temperatureData.put("humidityIndoor", indoorHumidity);

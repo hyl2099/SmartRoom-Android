@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +67,8 @@ import com.upm.smartroom.board.Blink;
 import com.upm.smartroom.board.Speaker;
 import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 import com.upm.smartroom.plant.PlantMainActivity;
+import com.upm.smartroom.postData.PictureRESTAPIService;
+import com.upm.smartroom.postData.TemperatureRESTAPIService;
 import com.upm.smartroom.state.AlarmState;
 import com.upm.smartroom.board.BoardDefaults;
 import com.upm.smartroom.board.BoardSpec;
@@ -76,6 +79,11 @@ import com.upm.smartroom.state.SwitchState;
 import com.upm.smartroom.weather.Weather;
 import com.upm.smartroom.weather.WeatherRESTAPIService;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -151,6 +159,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     private static final int MSG_UPDATE_BAROMETER_UI = 4;
     private static final int MSG_UPDATE_TEMPERATURE = 5;
     private static final int MSG_UPDATE_BAROMETER = 6;
+    private static final int POST_DATA_TO_SPRING =7;
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
     //speaker: active buzzer arduino
     private Speaker speaker;
@@ -171,6 +180,11 @@ public class ThingsMainActivity extends AppCompatActivity {
     private int lockState;
     private static final int LOCKON = 1;
     private static final int LOCKOFF = 0;
+
+    //API
+    private static final String SPRING_API_BASE_URL = "http://localhost:8080";
+    private PictureRESTAPIService pictureRESTAPIService;
+    private TemperatureRESTAPIService temperatureRESTAPIService;
 
     /**
      * A {@link Handler} for running Camera tasks in the background.
@@ -218,6 +232,9 @@ public class ThingsMainActivity extends AppCompatActivity {
 //                            e.printStackTrace();
 //                        }
 //                    }
+                    break;
+                case POST_DATA_TO_SPRING:
+                        postDataToSpring();
                     break;
                     //4
                 case MSG_UPDATE_BAROMETER_UI:
@@ -293,6 +310,21 @@ public class ThingsMainActivity extends AppCompatActivity {
                 mHandler.sendMessage(message);
                 try {
                     Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    class MyPostDataThread implements Runnable {
+        public void run() {
+            while (!Thread.currentThread().isInterrupted()) {
+                Message message = new Message();
+                message.what = 7;
+                mHandler.sendMessage(message);
+                try {
+                    Thread.sleep(100*60);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -404,10 +436,10 @@ public class ThingsMainActivity extends AppCompatActivity {
         timeTxt = (TextView) findViewById(R.id.timeTxt);
         otherTxt = findViewById(R.id.otherTxt);
         alarmTxt = (TextView) findViewById(R.id.alarmTxt);
-        lockTxt = (TextView) findViewById(R.id.lockTxt);
+//        lockTxt = (TextView) findViewById(R.id.lockTxt);
         switchTxt = (TextView) findViewById(R.id.switchTxt);
         alarmSwitcher = (Switch)findViewById(R.id.alarmSwitch);
-        lockSwitcher = (Switch)findViewById(R.id.lockSwitch);
+//        lockSwitcher = (Switch)findViewById(R.id.lockSwitch);
         switchSwitcher = (Switch)findViewById(R.id.switchSwitcher);
 
         currTemp = (TextView) findViewById(R.id.currTemp);
@@ -495,7 +527,11 @@ public class ThingsMainActivity extends AppCompatActivity {
                 .build();
         //API
         apiService = retrofit.create(WeatherRESTAPIService.class);
-
+        Retrofit retrofitSpring = new Retrofit.Builder()
+                .baseUrl(SPRING_API_BASE_URL).addConverterFactory(GsonConverterFactory.create())
+                .build();
+        temperatureRESTAPIService = retrofitSpring.create(TemperatureRESTAPIService.class);
+        pictureRESTAPIService = retrofitSpring.create(PictureRESTAPIService.class);
 
 
         alarmSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
@@ -1186,5 +1222,38 @@ public class ThingsMainActivity extends AppCompatActivity {
         }
     }
 
+
+    private void postDataToSpring() throws JSONException {
+        Call<Weather> call_async = apiService.getTempByCityName();
+        call_async.enqueue(new Callback<Weather>() {
+            @SuppressLint("ResourceAsColor")
+            @Override
+            public void onResponse(Call<Weather> call, Response<Weather> response) {
+                Weather weather = response.body();
+                DecimalFormat df = new DecimalFormat("#.0");
+//                float outdoorTemperature = (float)(weather.getMain().getTemp()-273.15);
+//                float outdoorHumidity = weather.getMain().getHumidity().floatValue();
+                String outdoorTemperature = df.format(weather.getMain().getTemp()-273.15);
+                String outdoorHumidity = weather.getMain().getHumidity().toString();
+            }
+            @Override
+            public void onFailure(Call<Weather> call, Throwable throwable) {
+
+            }
+        });
+        String indoorTemperature = DECIMAL_FORMAT.format(mLastTemperature);
+//        Float indoorTemperature = mLastTemperature;
+        String indoorHumidity = DECIMAL_FORMAT.format(mLastPressure*0.1);
+        JSONObject temperatureData = new JSONObject();
+        temperatureData.put("temperatureIndoor", indoorTemperature);
+        temperatureData.put("humidityIndoor", indoorHumidity);
+        temperatureData.put("temperatureOutdoor", "0");
+        temperatureData.put("humidityOutdoor", "0");
+        temperatureData.put("time", (new Date()).toString());
+
+        RequestBody temperature = RequestBody.create(MediaType.parse("application/json"), String.valueOf(temperatureData));
+        temperatureRESTAPIService.addTemperature(temperature);
+        Log.i(LOG_TAG, "Add temperature");
+    }
 
 }

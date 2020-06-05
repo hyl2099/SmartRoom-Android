@@ -1,8 +1,10 @@
 package com.upm.smartroom.plant;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -16,6 +18,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -82,8 +85,6 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
         mApplicationContext = context.getApplicationContext();
         mFirebaseStorage = FirebaseStorage.getInstance();
         databaseRef = FirebaseDatabase.getInstance().getReference().child("plants");
-
-
     }
 
     @NonNull
@@ -92,7 +93,6 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
         //Inflating layout doorbell_entry.xml
         View entryView = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.plant_entry, parent, false);
-
         return new PlantEntryViewHolder(entryView);
     }
 
@@ -151,12 +151,14 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
             }
         });
 
-
         //when click item edit button
         holder.itemEdit.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("ShowToast")
             @Override
             public void onClick(View v) {
                 Log.e("TAG", "EDIT`````````````````````````````````````````````````");
+//                mApplicationContext.startActivity(new Intent(mApplicationContext, AddItemActivity.class));
+                Toast.makeText(mApplicationContext,"Not finished",Toast.LENGTH_SHORT);
             }
         });
         //when click the item show buttons
@@ -189,10 +191,4 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
         });
 
     }
-
-    private void deleteRef(String id) {
-        databaseRef.child(id).removeValue();
-    }
-
-
 }

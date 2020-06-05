@@ -86,7 +86,7 @@ public class MobilMainActivity extends AppCompatActivity {
         barometerDisplay.setText("-");
 
         alarmSwitcher = (Switch)findViewById(R.id.alarmSwitch);
-        lockSwitcher = (Switch)findViewById(R.id.lockSwitch);
+//        lockSwitcher = (Switch)findViewById(R.id.lockSwitch);
         switchSwitcher = (Switch)findViewById(R.id.switchSwitcher);
 
         alarmSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){

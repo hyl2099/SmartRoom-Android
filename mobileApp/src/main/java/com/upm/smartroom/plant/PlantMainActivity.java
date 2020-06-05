@@ -2,14 +2,11 @@ package com.upm.smartroom.plant;
 
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -26,10 +23,6 @@ public class PlantMainActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private PlantEntryAdapter mAdapter;
     private DatabaseReference ref;
-    private FirebaseStorage mFirebaseStorage;
-    private Context mApplicationContext;
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,9 +86,6 @@ public class PlantMainActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         context.startActivity(intent);
     }
-
-
-
 }
 
 

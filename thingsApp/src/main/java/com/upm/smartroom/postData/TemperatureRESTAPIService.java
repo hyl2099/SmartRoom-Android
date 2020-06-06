@@ -32,8 +32,9 @@ public interface TemperatureRESTAPIService {
 
     // 以下方法不是像上面那样每个字段都单独指定. 这个对象将使用在创建Retrofit 实例时指定的Converter 进行序列化.
     // 不过这个只能用于在进行POST 或者PUT 请求的时候.
+//    @FormUrlEncoded
     @POST("/temperature/save")
-    @FormUrlEncoded
+
     Call<SpringTemperature> saveTemperature(@Body SpringTemperature t);
 }
 

@@ -1250,17 +1250,21 @@ public class ThingsMainActivity extends AppCompatActivity {
 //        String indoorHumidity = DECIMAL_FORMAT.format(mLastPressure*0.1);
         Float indoorHumidity = (float)(mLastPressure*0.1);
 
-        SpringTemperature t = new SpringTemperature(indoorTemperature,indoorHumidity,outdoorTemperature[0],outdoorHumidity[0],new Date());
+        long time=System.currentTimeMillis();//long now = android.os.SystemClock.uptimeMillis();
+        SimpleDateFormat format=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date d1=new Date(time);
+        String t1=format.format(d1);
+
+        SpringTemperature t = new SpringTemperature(indoorTemperature,indoorHumidity,outdoorTemperature[0],outdoorHumidity[0],t1);
         return t;
     }
 
 
     private void postDataToSpring() throws JSONException {
-
-//        sendTemperaturePost(t);
-        //SpringTemperature t = getTemperatureFromWeb();
+        SpringTemperature t = getTemperatureFromWeb();
+        sendTemperaturePost(t);
         //sendTempPost(t.getTemperatureIndoor(),t.getHumidityIndoor(),t.getTemperatureOutdoor(),t.getHumidityOutdoor(),t.getTime());
-        getTemp();
+        //getTemp();
 
 //        JSONObject temperatureData = new JSONObject();
 //        temperatureData.put("temperatureIndoor", indoorTemperature);

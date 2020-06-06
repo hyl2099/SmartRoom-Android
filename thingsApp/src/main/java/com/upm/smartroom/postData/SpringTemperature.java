@@ -6,6 +6,8 @@ import com.google.gson.annotations.SerializedName;
 import java.util.Date;
 
 public class SpringTemperature {
+    //SerializedName是Gson 用于将JSON 的key 映射到Java 对象的字段的.
+    //Expose则是用来声明类成员是否需要进行JSON 的序列化或反序列化.
     @SerializedName("id")
     @Expose
     private Long id;
@@ -23,7 +25,7 @@ public class SpringTemperature {
     private Float humidityOutdoor;
     @SerializedName("time")
     @Expose
-    private Date time;
+    private String time;
 
     public SpringTemperature() {
     }
@@ -36,7 +38,7 @@ public class SpringTemperature {
         this.time = t.time;
     }
 
-    public SpringTemperature(Float temperatureIndoor, Float humidityIndoor, Float temperatureOutdoor, Float humidityOutdoor, Date time) {
+    public SpringTemperature(Float temperatureIndoor, Float humidityIndoor, Float temperatureOutdoor, Float humidityOutdoor, String time) {
         this.temperatureIndoor = temperatureIndoor;
         this.humidityIndoor = humidityIndoor;
         this.temperatureOutdoor = temperatureOutdoor;
@@ -84,11 +86,11 @@ public class SpringTemperature {
         this.humidityOutdoor = humidityOutdoor;
     }
 
-    public Date getTime() {
+    public String getTime() {
         return time;
     }
 
-    public void setTime(Date time) {
+    public void setTime(String time) {
         this.time = time;
     }
 

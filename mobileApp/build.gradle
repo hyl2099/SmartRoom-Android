@@ -4,6 +4,8 @@ android {
     compileSdkVersion 29
     buildToolsVersion '29.0.2'
 
+    compileOptions { encoding "UTF-8" }
+
     defaultConfig {
         applicationId "com.upm.smartroom"
         minSdkVersion 27

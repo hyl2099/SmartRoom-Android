@@ -234,7 +234,11 @@ public class ThingsMainActivity extends AppCompatActivity {
 //                    }
                     break;
                 case POST_DATA_TO_SPRING:
+                    try {
                         postDataToSpring();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                     break;
                     //4
                 case MSG_UPDATE_BAROMETER_UI:
@@ -479,9 +483,9 @@ public class ThingsMainActivity extends AppCompatActivity {
         mLockDatabaseReference = mFirebaseDatabase.getReference().child("lockState");
         LockState nowLockState = new LockState("0");
         mLockDatabaseReference.setValue(nowLockState);
-        lockSwitcher.setChecked(false);
-        lockState = LOCKOFF;
-        lockTxt.setText("LOCK OFF");
+//        lockSwitcher.setChecked(false);
+//        lockState = LOCKOFF;
+//        lockTxt.setText("LOCK OFF");
 
         mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("switchState");
         SwitchState nowSwitchState = new SwitchState("0");
@@ -551,22 +555,22 @@ public class ThingsMainActivity extends AppCompatActivity {
                 }
             }
         });
-        lockSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked){
-                    Map<String, Object> childUpdates = new HashMap<>();
-                    childUpdates.put(mLockDatabaseReference.getKey(), "1");
-                    mLockDatabaseReference.updateChildren(childUpdates);
-                    Log.d(TAG, "switch check Lock is on!!!");
-                }else {
-                    Map<String, Object> childUpdates = new HashMap<>();
-                    childUpdates.put(mLockDatabaseReference.getKey(), "0");
-                    mLockDatabaseReference.updateChildren(childUpdates);
-                    Log.d(TAG, "switch check Lock is off!!!");
-                }
-            }
-        });
+//        lockSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
+//            @Override
+//            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+//                if(isChecked){
+//                    Map<String, Object> childUpdates = new HashMap<>();
+//                    childUpdates.put(mLockDatabaseReference.getKey(), "1");
+//                    mLockDatabaseReference.updateChildren(childUpdates);
+//                    Log.d(TAG, "switch check Lock is on!!!");
+//                }else {
+//                    Map<String, Object> childUpdates = new HashMap<>();
+//                    childUpdates.put(mLockDatabaseReference.getKey(), "0");
+//                    mLockDatabaseReference.updateChildren(childUpdates);
+//                    Log.d(TAG, "switch check Lock is off!!!");
+//                }
+//            }
+//        });
         switchSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -724,15 +728,15 @@ public class ThingsMainActivity extends AppCompatActivity {
             led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
 //            初始化 BMP280Sensor
             mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
-            try {
-                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
-                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
-                mEnvironmentalSensorDriver.registerTemperatureSensor();
-                mEnvironmentalSensorDriver.registerPressureSensor();
-                Log.d(TAG, "Initialized I2C BMP280");
-            } catch (IOException e) {
-                throw new RuntimeException("Error initializing BMP280", e);
-            }
+//            try {
+//                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
+//                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
+//                mEnvironmentalSensorDriver.registerTemperatureSensor();
+//                mEnvironmentalSensorDriver.registerPressureSensor();
+//                Log.d(TAG, "Initialized I2C BMP280");
+//            } catch (IOException e) {
+//                throw new RuntimeException("Error initializing BMP280", e);
+//            }
             //初始化buzzerSpeaker(Zumbado)
             PeripheralManager buzzerPio = PeripheralManager.getInstance();
             buzzerSpeaker = buzzerPio.openGpio(BoardDefaults.getGPIOForBuzzer());

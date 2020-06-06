@@ -63,15 +63,13 @@ import java.util.TimeZone;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.things.contrib.driver.bmx280.Bmx280SensorDriver;
-import com.upm.smartroom.board.Blink;
-import com.upm.smartroom.board.Speaker;
 import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 import com.upm.smartroom.plant.PlantMainActivity;
 import com.upm.smartroom.postData.PictureRESTAPIService;
+import com.upm.smartroom.postData.SpringTemperature;
 import com.upm.smartroom.postData.TemperatureRESTAPIService;
 import com.upm.smartroom.state.AlarmState;
 import com.upm.smartroom.board.BoardDefaults;
-import com.upm.smartroom.board.BoardSpec;
 import com.upm.smartroom.doorbell.DoorbellCamera;
 import com.upm.smartroom.state.LockState;
 import com.upm.smartroom.state.RoomTemperature;
@@ -80,15 +78,16 @@ import com.upm.smartroom.weather.Weather;
 import com.upm.smartroom.weather.WeatherRESTAPIService;
 
 import org.json.JSONException;
-import org.json.JSONObject;
-
-import okhttp3.MediaType;
-import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.http.Field;
+import retrofit2.http.FormUrlEncoded;
+import retrofit2.http.POST;
+
+
 
 
 public class ThingsMainActivity extends AppCompatActivity {
@@ -134,7 +133,12 @@ public class ThingsMainActivity extends AppCompatActivity {
 
     //weather API
     private static final String WEATHER_API_BASE_URL = "https://api.openweathermap.org";
+    //Spring API
+    private static final String SPRING_API_BASE_URL = "http://192.168.1.55:8080";
     private WeatherRESTAPIService apiService;
+    private PictureRESTAPIService pictureRESTAPIService;
+    private TemperatureRESTAPIService temperatureRESTAPIService;
+
 
     //Driver for the doorbell button GPIO2_IO05;
     private ButtonInputDriver mButtonInputDriver;
@@ -162,9 +166,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     private static final int POST_DATA_TO_SPRING =7;
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
     //speaker: active buzzer arduino
-    private Speaker speaker;
     private Gpio buzzerSpeaker;
-    Blink blinkBuzzerSpeaker;
     //detect something moving
     private int somethingIsMoving;
     private  static final int SOMETHING_MOVING = 1;
@@ -181,10 +183,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     private static final int LOCKON = 1;
     private static final int LOCKOFF = 0;
 
-    //API
-    private static final String SPRING_API_BASE_URL = "http://localhost:8080";
-    private PictureRESTAPIService pictureRESTAPIService;
-    private TemperatureRESTAPIService temperatureRESTAPIService;
+
 
     /**
      * A {@link Handler} for running Camera tasks in the background.
@@ -522,7 +521,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         new Thread(new MyThread()).start();
         new Thread(new MyTimerThread()).start();
         new Thread(new MyBuzzerThread()).start();
-
+        new Thread(new MyPostDataThread()).start();
 
         //initialize API
         // btb added for retrofit for weather API
@@ -800,7 +799,6 @@ public class ThingsMainActivity extends AppCompatActivity {
             buzzerSpeaker.close();
             mButtonInputDriver.close();
             mButtonAlarmInputDriver.close();
-            if (speaker!=null) speaker.close();
         } catch (IOException e) {
             Log.e(TAG, "button driver error", e);
         }
@@ -1227,7 +1225,9 @@ public class ThingsMainActivity extends AppCompatActivity {
     }
 
 
-    private void postDataToSpring() throws JSONException {
+    private SpringTemperature getTemperatureFromWeb(){
+        final float[] outdoorTemperature = new float[1];
+        final float[] outdoorHumidity = new float[1];
         Call<Weather> call_async = apiService.getTempByCityName();
         call_async.enqueue(new Callback<Weather>() {
             @SuppressLint("ResourceAsColor")
@@ -1235,30 +1235,105 @@ public class ThingsMainActivity extends AppCompatActivity {
             public void onResponse(Call<Weather> call, Response<Weather> response) {
                 Weather weather = response.body();
                 DecimalFormat df = new DecimalFormat("#.0");
-//                float outdoorTemperature = (float)(weather.getMain().getTemp()-273.15);
-//                float outdoorHumidity = weather.getMain().getHumidity().floatValue();
-                String outdoorTemperature = df.format(weather.getMain().getTemp()-273.15);
-                String outdoorHumidity = weather.getMain().getHumidity().toString();
+                outdoorTemperature[0] = (float)(weather.getMain().getTemp()-273.15);
+                outdoorHumidity[0] = weather.getMain().getHumidity().floatValue();
+//                String outdoorTemperature = df.format(weather.getMain().getTemp()-273.15);
+//                String outdoorHumidity = weather.getMain().getHumidity().toString();
             }
             @Override
             public void onFailure(Call<Weather> call, Throwable throwable) {
 
             }
         });
-        String indoorTemperature = DECIMAL_FORMAT.format(mLastTemperature);
-//        Float indoorTemperature = mLastTemperature;
-        String indoorHumidity = DECIMAL_FORMAT.format(mLastPressure*0.1);
+//        String indoorTemperature = DECIMAL_FORMAT.format(mLastTemperature);
+        Float indoorTemperature = mLastTemperature;
+//        String indoorHumidity = DECIMAL_FORMAT.format(mLastPressure*0.1);
+        Float indoorHumidity = (float)(mLastPressure*0.1);
 
-        JSONObject temperatureData = new JSONObject();
-        temperatureData.put("temperatureIndoor", indoorTemperature);
-        temperatureData.put("humidityIndoor", indoorHumidity);
-        temperatureData.put("temperatureOutdoor", "0");
-        temperatureData.put("humidityOutdoor", "0");
-        temperatureData.put("time", (new Date()).toString());
+        SpringTemperature t = new SpringTemperature(indoorTemperature,indoorHumidity,outdoorTemperature[0],outdoorHumidity[0],new Date());
+        return t;
+    }
 
-        RequestBody temperature = RequestBody.create(MediaType.parse("application/json"), String.valueOf(temperatureData));
-        temperatureRESTAPIService.addTemperature(temperature);
+
+    private void postDataToSpring() throws JSONException {
+
+//        sendTemperaturePost(t);
+        //SpringTemperature t = getTemperatureFromWeb();
+        //sendTempPost(t.getTemperatureIndoor(),t.getHumidityIndoor(),t.getTemperatureOutdoor(),t.getHumidityOutdoor(),t.getTime());
+        getTemp();
+
+//        JSONObject temperatureData = new JSONObject();
+//        temperatureData.put("temperatureIndoor", indoorTemperature);
+//        temperatureData.put("humidityIndoor", indoorHumidity);
+//        temperatureData.put("temperatureOutdoor", "0");
+//        temperatureData.put("humidityOutdoor", "0");
+//        temperatureData.put("time", (new Date()).toString());
+
+//        RequestBody temperature = RequestBody.create(MediaType.parse("application/json"), String.valueOf(temperatureData));
+//        temperatureRESTAPIService.addTemperature(temperature);
         Log.i(LOG_TAG, "Add temperature");
+    }
+
+    public void getTemp(){
+        Call<List<SpringTemperature>> call_async = temperatureRESTAPIService.readTemperatureAll();
+        call_async.enqueue(new Callback<List<SpringTemperature>>() {
+            @Override
+            public void onResponse(Call<List<SpringTemperature>> call, Response<List<SpringTemperature>> response) {
+                List<SpringTemperature> t = response.body();
+                Log.e(TAG, "get  temperature from API." + t.get(0).getTemperatureOutdoor() + t.get(0).getHumidityOutdoor());
+            }
+
+            @Override
+            public void onFailure(Call<List<SpringTemperature>> call, Throwable t) {
+                Log.e(TAG, "Unable to get  temperature from API.");
+            }
+
+
+        });
+    }
+
+    public void sendTempPost(Float temperatureIndoor,Float humidityIndoor,
+                             Float temperatureOutdoor, Float humidityOutdoor,Date time){
+        temperatureRESTAPIService.saveTemp(temperatureIndoor,humidityIndoor,
+                temperatureOutdoor,humidityOutdoor,time).enqueue(new Callback<SpringTemperature>() {
+            @Override
+            public void onResponse(Call<SpringTemperature> call, Response<SpringTemperature> response) {
+                if(response.isSuccessful()) {
+                    //showResponse(response.body().toString());
+                    Log.i(TAG, "post temperature OK." + response.body().toString());
+                }
+            }
+            @Override
+            public void onFailure(Call<SpringTemperature> call, Throwable t) {
+                Log.e(TAG, "Unable to submit post temperature to API.");
+            }
+        });
+    }
+
+
+    public void sendTemperaturePost(SpringTemperature t) {
+        //temperatureRESTAPIService (APIService 接口的实例) saveTemperature方法会返回一个Call 对象, 这个对象有个enqueue(Callback callback) 方法.
+        //enqueue() 异步地发送请求, 然后当响应回来的时候, 使用回调的方式通知你的APP. 因为这个请求是异步的, Retrofit 使用一个另外的线程去执行它, 这样UI 线程就不会被阻塞了.
+        //要使用enqueue() 方法, 你需要实现两个回调方法: onResponse() 和onFailure(). 对于一个请求, 当响应回来的时候, 只有一个方法会被执行.
+        //onResponse(): 在收到HTTP 响应的时候被调用. 这个方法在服务器可以处理请求的情况下调用, 即使服务器返回的是一个错误的信息. 例如你获取到的响应状态是404 或500. 你可以使用response.code() 来获取状态码, 以便进行不同的处理. 当然你也可以直接用isSuccessful() 方法来判断响应的状态码是不是在200-300 之间(在这个范围内标识是成功的).
+        //onFailure(): 当和服务器通信出现网络异常时, 或者在处理请求出现不可预测的错误时, 会调用这个方法.
+        temperatureRESTAPIService.saveTemperature(t).enqueue(new Callback<SpringTemperature>() {
+            @Override
+            public void onResponse(Call<SpringTemperature> call, Response<SpringTemperature> response) {
+                if(response.isSuccessful()) {
+                    //showResponse(response.body().toString());
+                    Log.i(TAG, "post temperature OK." + response.body().toString());
+                }
+            }
+            @Override
+            public void onFailure(Call<SpringTemperature> call, Throwable t) {
+                Log.e(TAG, "Unable to submit post temperature to API.");
+            }
+        });
+    }
+
+    public void showResponse(String response) {
+       //TODO
     }
 
 }

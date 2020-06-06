@@ -1,13 +1,29 @@
 package com.upm.smartroom.postData;
 
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
+
+import java.util.Arrays;
 import java.util.Date;
 
 public class SpringPicture {
+    @SerializedName("owner")
+    @Expose
     private String owner;
+    @SerializedName("uploadTime")
+    @Expose
     private Date uploadTime;
+    @SerializedName("path")
+    @Expose
     private String path;
+    @SerializedName("photo")
+    @Expose
     private byte[] photo;
+    @SerializedName("image")
+    @Expose
     private String image;
+    @SerializedName("remark")
+    @Expose
     private String remark;
 
     public SpringPicture() {
@@ -77,5 +93,17 @@ public class SpringPicture {
 
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+
+    @Override
+    public String toString() {
+        return "SpringPicture{" +
+                "owner='" + owner + '\'' +
+                ", uploadTime=" + uploadTime +
+                ", path='" + path + '\'' +
+                ", photo=" + Arrays.toString(photo) +
+                ", image='" + image + '\'' +
+                ", remark='" + remark + '\'' +
+                '}';
     }
 }

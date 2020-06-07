@@ -211,6 +211,8 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
                         plants.child("name").setValue(plantName);
                         plants.child("humidityNeed").setValue(humidityNeed);
                         plants.child("image").setValue(downloadUrl.toString());
+                        //浇水开关 0-- 关， 1--开
+                        plants.child("waterState").setValue(0);
                     }
                 });
             }

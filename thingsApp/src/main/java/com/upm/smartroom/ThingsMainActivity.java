@@ -88,7 +88,6 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 
-
 public class ThingsMainActivity extends AppCompatActivity {
     private static final String TAG = ThingsMainActivity.class.getSimpleName();
     private static final String LOG_TAG = ThingsMainActivity.class.getSimpleName();
@@ -139,11 +138,18 @@ public class ThingsMainActivity extends AppCompatActivity {
     private ButtonInputDriver mButtonCameraInputDriver;
     //Driver for Alarm button GPIO2_IO07
     private ButtonInputDriver mButtonAlarmInputDriver;
+    //alarm状态
     private int alarmState;
     private static final int ALARMON = 1;
     private static final int ALARMOFF = 0;
+
     //LED GPIO06_IO14
     private Gpio led;
+    //LED开关状态
+    private int switchState;
+    private static final int SWITCHON = 1;
+    private static final int SWITCHOFF = 0;
+
     //BMP280 for temperature and humidity
     private SensorManager mSensorManager;
     private Bmx280SensorDriver mEnvironmentalSensorDriver;
@@ -168,14 +174,10 @@ public class ThingsMainActivity extends AppCompatActivity {
     private int somethingIsMoving;
     private  static final int SOMETHING_MOVING = 1;
     private  static final int NOTHING_MOVING = 0;
-    //TODO
-    //electric switch
-    private Gpio switcher;
-    private int switchState;
-    private static final int SWITCHON = 1;
-    private static final int SWITCHOFF = 0;
 
-
+    //设置一个常量，根据相机按钮是否按下拍照来判断拍照是camera还是movement
+    //1 -- camera; 2 -- movement
+    private  static int DOORBELL_MOVEMENT;
 
     /**
      * A {@link Handler} for running Camera tasks in the background.
@@ -211,7 +213,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                     //update room temperature to mobile
                     break;
                 case 2:
-                    //the Clock on sreeen.
+                    //the Clock on screen.
                     myTimer(findViewById(R.id.timeTxt));
                     break;
                 case 3:
@@ -313,6 +315,7 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         }
     }
+
     //thread for POST temperature to Sping server.
     class MyPostDataThread implements Runnable {
         public void run() {
@@ -321,7 +324,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 message.what = 7;
                 mHandler.sendMessage(message);
                 try {
-                    Thread.sleep(100*60);
+                    Thread.sleep(100*60*10);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -342,7 +345,6 @@ public class ThingsMainActivity extends AppCompatActivity {
                 // Our sensor is connected. Start receiving pressure data.
                 mSensorManager.registerListener(mPressureListener, sensor,
                         SensorManager.SENSOR_DELAY_NORMAL);
-
             }
         }
         @Override
@@ -391,7 +393,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                     startMovementAlarm();
                 } else {
                     somethingIsMoving = NOTHING_MOVING;
-                    Log.e("没有人", gpio.getValue() + ":2222222222222222222222222222222222222222222222222222222222222222222222222");
+                    Log.e("没有人", gpio.getValue() + ":2222222222222222222222222222222222222222222222222222222222222222222222222222222222");
                     //stopBuzzer();
                 }
             } catch (IOException e) {
@@ -400,8 +402,6 @@ public class ThingsMainActivity extends AppCompatActivity {
             return true;
         }
     };
-
-
 
 
 
@@ -450,7 +450,8 @@ public class ThingsMainActivity extends AppCompatActivity {
             Log.e(TAG, "No permission");
             return;
         }
-
+        //判断是camera还是movement
+        DOORBELL_MOVEMENT =0;
 
         // Get instance of Firebase database
         mFirebaseDatabase = FirebaseDatabase.getInstance();
@@ -535,6 +536,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 }
             }
         });
+        //是否点亮LED
         switchSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -695,9 +697,9 @@ public class ThingsMainActivity extends AppCompatActivity {
 //                throw new RuntimeException("Error initializing BMP280", e);
 //            }
             //7..................
-            //初始化electric switch
-            switcher = buzzerPio.openGpio(BoardDefaults.getGPIOForSwitcher());
-            switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            //初始化electric switch to water plants
+//            waterPlant = buzzerPio.openGpio(BoardDefaults.getGPIOForSwitcher());
+//            waterplant.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
         } catch (IOException e) {
             mButtonCameraInputDriver = null;
             mButtonAlarmInputDriver = null;
@@ -745,7 +747,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         if (keyCode == KeyEvent.KEYCODE_ENTER) { //for camera button
             //Log.d(TAG, "button pressed now");
             try {
-                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+//                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
                 buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -753,7 +755,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         }else if (keyCode == KeyEvent.KEYCODE_0) { //for alarm button
             //Log.d(TAG, "Alarm pressed now!!!");
             try {
-                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+//                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
                 buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -769,8 +771,9 @@ public class ThingsMainActivity extends AppCompatActivity {
             // Doorbell rang!
             Log.d(TAG, "Door bell button pressed");
             mCamera.takePicture();
+            DOORBELL_MOVEMENT = 1;
             try {
-                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+//                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
                 buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -779,7 +782,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         }else if (keyCode == KeyEvent.KEYCODE_0) { //for alarm button
             Log.d(TAG, "Alarm button pressed!!!");
             try {
-                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+//                led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
                 buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -828,14 +831,16 @@ public class ThingsMainActivity extends AppCompatActivity {
             final StorageReference imageRef;
             final DatabaseReference movementRecord = mFirebaseDatabase.getReference("movementRecords").push();
             final DatabaseReference doorbellRecord = mFirebaseDatabase.getReference("doorbellRecords").push();
-            //将doorbell record存在firebase 实时数据库
-            if (somethingIsMoving == SOMETHING_MOVING){
-                //image存入storage
-                imageRef = mStorage.getReference().child(movementRecord.getKey());
+            final DatabaseReference dbRef;
+            if(DOORBELL_MOVEMENT ==1){
+                dbRef = doorbellRecord;
             }else{
-                //image存入storage
-                imageRef = mStorage.getReference().child(doorbellRecord.getKey());
+                dbRef = movementRecord;
             }
+            //将doorbell record存在firebase 实时数据库
+            //image存入storage
+            imageRef = mStorage.getReference().child(dbRef.getKey());
+
             // upload image to storage
             UploadTask task = imageRef.putBytes(imageBytes);
             task.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
@@ -850,10 +855,10 @@ public class ThingsMainActivity extends AppCompatActivity {
                             downloadUrl = uri;
                             // mark image in the database
                             Log.i(TAG, "Image upload successful");
-                            doorbellRecord.child("timestamp").setValue(ServerValue.TIMESTAMP);
-                            doorbellRecord.child("image").setValue(downloadUrl.toString());
+                            dbRef.child("timestamp").setValue(ServerValue.TIMESTAMP);
+                            dbRef.child("image").setValue(downloadUrl.toString());
                             // process image annotations
-                            annotateImage(doorbellRecord, imageBytes);
+                            annotateImage(dbRef, imageBytes);
                         }
                     });
                 }
@@ -862,17 +867,21 @@ public class ThingsMainActivity extends AppCompatActivity {
                 public void onFailure(@NonNull Exception e) {
                     // clean up this entry
                     Log.w(TAG, "Unable to upload image to Firebase");
-                    doorbellRecord.removeValue();
+                    dbRef.removeValue();
                 }
             });
-
             // upload image to my Spring server
             //二，将图片上传到本地Spring后端
             //imageBytes 图片byte[]文件
             //owner
             RequestBody owner = RequestBody.create(null, "owner");
             //remark
-            RequestBody remark = RequestBody.create(null, "remark");
+            RequestBody remark;
+            if(DOORBELL_MOVEMENT ==1){
+                remark = RequestBody.create(null, "doorbell");
+            }else{
+                remark = RequestBody.create(null, "movement");
+            }
             //file
             MultipartBody.Part file = toMultiPartFile(imageBytes);
             pictureRESTAPIService.addPhoto(file,owner,remark).enqueue(new Callback<SpringPicture>() {
@@ -887,19 +896,16 @@ public class ThingsMainActivity extends AppCompatActivity {
                     Log.e(TAG, "Unable to submit post picture to API.");
                 }
             });
+            DOORBELL_MOVEMENT = 0;
         }
     }
-
     public static MultipartBody.Part toMultiPartFile(byte[] byteArray) {
         RequestBody reqFile = RequestBody.create(MediaType.parse("image/jpeg"), byteArray);
         return MultipartBody.Part.createFormData("file",
                 "doorbell", // filename, this is optional
                 reqFile);
     }
-
-    /**
-     * Process image contents with Cloud Vision.
-     */
+    //Process image contents with Cloud Vision.
     private void annotateImage(final DatabaseReference ref, final byte[] imageBytes) {
         mCloudHandler.post(new Runnable() {
             @Override
@@ -1095,7 +1101,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         if(alarmState == ALARMON){
             alarmTxt.setText("Alarm ON");
             if(somethingIsMoving == SOMETHING_MOVING){
-                Log.d(TAG, "Alarm State ON!!!");
+                Log.d(TAG, "SOMETHING_MOVING Alarm State ON!!!");
                 try {
                     startBuzzer();
                 } catch (IOException e) {
@@ -1103,7 +1109,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 }
             }
         }else {
-            alarmTxt.setText("Alarm OFF");
+            alarmTxt.setText("unable to start buzzer...");
         }
     }
     private void startMovementAlarm() throws IOException {
@@ -1139,11 +1145,13 @@ public class ThingsMainActivity extends AppCompatActivity {
             //Log.d(TAG, "Switch is OFF!!!");
         }
     }
+    //开关开，LED亮
     private void switchOn() throws IOException {
-        switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+        led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
     }
+    //开关关，LED灭
     private void switchOff() throws IOException {
-        switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+        led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
     }
 
     // btb method implemented

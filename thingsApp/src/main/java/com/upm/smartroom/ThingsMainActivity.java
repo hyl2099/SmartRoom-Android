@@ -121,6 +121,9 @@ public class ThingsMainActivity extends AppCompatActivity {
     private ChildEventListener mChildEventAlarmListener;
     private ChildEventListener mChildEventSwitchListener;
 
+    private DatabaseReference mPlantDatabaseReference;
+    private ChildEventListener mChildEventPlantSwitchListener;
+
     // doorbell
     private DoorbellCamera mCamera;
 
@@ -145,10 +148,14 @@ public class ThingsMainActivity extends AppCompatActivity {
 
     //LED GPIO06_IO14
     private Gpio led;
+    private Gpio waterPlantSwitch;
     //LED开关状态
-    private int switchState;
+    private int LightSwitchState;
+    //浇水开关状态
+    private int waterPlantSwitchState;
     private static final int SWITCHON = 1;
     private static final int SWITCHOFF = 0;
+
 
     //BMP280 for temperature and humidity
     private SensorManager mSensorManager;
@@ -174,6 +181,8 @@ public class ThingsMainActivity extends AppCompatActivity {
     private int somethingIsMoving;
     private  static final int SOMETHING_MOVING = 1;
     private  static final int NOTHING_MOVING = 0;
+
+
 
     //设置一个常量，根据相机按钮是否按下拍照来判断拍照是camera还是movement
     //1 -- camera; 2 -- movement
@@ -466,13 +475,17 @@ public class ThingsMainActivity extends AppCompatActivity {
         somethingIsMoving = NOTHING_MOVING;
         alarmState = ALARMON;
         alarmTxt.setText("ALARM ON");
-        mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("switchState");
-        //Switch OFF
+        //light switch
+        mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("LightSwitchState");
+        //Light Switch OFF
         SwitchState nowSwitchState = new SwitchState("0");
         mSwitchDatabaseReference.setValue(nowSwitchState);
         switchSwitcher.setChecked(false);
-        switchState = SWITCHOFF;
+        LightSwitchState = SWITCHOFF;
         switchTxt.setText("SWITCH OFF");
+        //Plant Water Switch
+        mPlantDatabaseReference = mFirebaseDatabase.getReference().child("plants");
+        //mainactivity中只接受状态看是不是浇水。
 
         //Temperature and Humidity
         mRoomTempDatabaseReference = mFirebaseDatabase.getReference().child("roomTemperature");
@@ -606,7 +619,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 //if switch state in real time database changed, change alarmState in iMX7.
                 String rtSwitchState = (String) dataSnapshot.getValue();
                 if(rtSwitchState.equals("1")){
-                    switchState = SWITCHON;
+                    LightSwitchState = SWITCHON;
                     if(!switchSwitcher.isChecked()){
                         switchSwitcher.setChecked(true);
                     }
@@ -617,7 +630,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                     }
                     Log.d(TAG, "Database switch is on!!!");
                 }else if(rtSwitchState.equals("0")){
-                    switchState = SWITCHOFF;
+                    LightSwitchState = SWITCHOFF;
                     if(switchSwitcher.isChecked()){
                         switchSwitcher.setChecked(false);
                     }
@@ -637,6 +650,54 @@ public class ThingsMainActivity extends AppCompatActivity {
             public void onCancelled(@NonNull DatabaseError databaseError) {}
         };
         mSwitchDatabaseReference.addChildEventListener(mChildEventSwitchListener);
+
+        //监听实时数据库中plants water switch开关变化
+        mChildEventPlantSwitchListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                // Deserialize data from DB into our AlarmState object
+            }
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                //if water state in real time database changed, water the plants
+                String rtWaterPlantSwitchState = "";
+                for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
+                    String childKey = childSnapshot.getKey();
+                    if(childKey.equals("switchState")){
+                        rtWaterPlantSwitchState = childSnapshot.getValue().toString();
+                    }
+                    // in here, childSnapshot.getKey() should return "test1",
+                    // then "test2", depending on the loop count.
+                    // and childSnapshot.getValue() should return "2"
+
+                }
+                
+                if(rtWaterPlantSwitchState.equals("1")){
+                    waterPlantSwitchState = 1;
+                    try {
+                        waterPlant();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d(TAG, "Water plant!!!");
+                }else if(rtWaterPlantSwitchState.equals("0")){
+                    waterPlantSwitchState = 0;
+                    try {
+                        stopWaterPlant();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d(TAG, "STOP Water plant!!!");
+                }
+            }
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        };
+        mPlantDatabaseReference.addChildEventListener(mChildEventPlantSwitchListener);
     }
     ///////////////end of onCreate()///////////////////
     //////////////////////////////////////////////////
@@ -698,8 +759,8 @@ public class ThingsMainActivity extends AppCompatActivity {
 //            }
             //7..................
             //初始化electric switch to water plants
-//            waterPlant = buzzerPio.openGpio(BoardDefaults.getGPIOForSwitcher());
-//            waterplant.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            waterPlantSwitch = buzzerPio.openGpio(BoardDefaults.getGPIOForSwitcher());
+            waterPlantSwitch.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
         } catch (IOException e) {
             mButtonCameraInputDriver = null;
             mButtonAlarmInputDriver = null;
@@ -1095,7 +1156,6 @@ public class ThingsMainActivity extends AppCompatActivity {
     }
     /////////////BPM280 sensor finish/////////
 
-
     private void startBuzzerAlarm() throws IOException {
         stopBuzzer();
         if(alarmState == ALARMON){
@@ -1135,11 +1195,11 @@ public class ThingsMainActivity extends AppCompatActivity {
     }
 
     private void startSwitchOn() throws IOException {
-        if(switchState ==SWITCHON){
+        if(LightSwitchState ==SWITCHON){
             switchOn();
             switchTxt.setText("Switcher ON");
             Log.d(TAG, "Switch is ON!!!");
-        }else if(switchState ==SWITCHOFF){
+        }else if(LightSwitchState ==SWITCHOFF){
             switchOff();
             switchTxt.setText("Switcher OFF");
             //Log.d(TAG, "Switch is OFF!!!");
@@ -1233,6 +1293,17 @@ public class ThingsMainActivity extends AppCompatActivity {
         Date d1=new Date(time);
         String t1=format.format(d1);
         return t1;
+    }
+
+    public void waterPlant() throws IOException {
+        if(waterPlantSwitchState == 1){
+            waterPlantSwitch.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+        }
+    }
+    public void stopWaterPlant() throws IOException {
+        if(waterPlantSwitchState == 0){
+            waterPlantSwitch.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+        }
     }
 
 }

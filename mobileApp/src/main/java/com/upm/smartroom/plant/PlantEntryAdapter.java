@@ -132,8 +132,6 @@ public abstract class PlantEntryAdapter extends FirebaseRecyclerAdapter<PlantEnt
                 databaseRef.child(key).removeValue();
                 //此处还应删除storage里的图片。
                 //后面在写
-
-
                 //删除对话框有问题，Builder参数应该是activity的context，但是这里一直有问题，以后再研究。
 //                new AlertDialog.Builder(PlantMainActivity.this)
 //                        .setTitle("Delete Item")

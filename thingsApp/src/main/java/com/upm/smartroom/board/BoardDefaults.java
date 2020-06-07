@@ -43,9 +43,9 @@ public class BoardDefaults {
     }
 
     //TODO
-    //Switch
+    //Switch for water plants
     public static String getGPIOForSwitcher(){
-        return "GPIO1_IO10";
+        return "GPIO6_IO12";
     }
     //使用中
     //Sendor for movement

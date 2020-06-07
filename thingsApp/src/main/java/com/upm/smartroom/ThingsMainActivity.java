@@ -148,6 +148,7 @@ public class ThingsMainActivity extends AppCompatActivity {
 
     //LED GPIO06_IO14
     private Gpio led;
+    //GPIO6_IO12
     private Gpio waterPlantSwitch;
     //LED开关状态
     private int LightSwitchState;
@@ -707,7 +708,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     private void initPIO() {
         try {
             //1,LED;2,CameraButton;3,AlarmButton;4,Buzzer
-            //5,sensor movement; 6,BPM280;7,switch;
+            //5,sensor movement; 6,BPM280;7,water switch;
             //1................
             //LED 灯，接在GPIO6_IO14口。
             PeripheralManager pio = PeripheralManager.getInstance();
@@ -759,7 +760,8 @@ public class ThingsMainActivity extends AppCompatActivity {
 //            }
             //7..................
             //初始化electric switch to water plants
-            waterPlantSwitch = buzzerPio.openGpio(BoardDefaults.getGPIOForSwitcher());
+            PeripheralManager waterSwitchPio = PeripheralManager.getInstance();
+            waterPlantSwitch = waterSwitchPio.openGpio(BoardDefaults.getGPIOForSwitcher());
             waterPlantSwitch.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
         } catch (IOException e) {
             mButtonCameraInputDriver = null;
@@ -1296,14 +1298,12 @@ public class ThingsMainActivity extends AppCompatActivity {
     }
 
     public void waterPlant() throws IOException {
-        if(waterPlantSwitchState == 1){
             waterPlantSwitch.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-        }
+            Log.e(TAG, "waterPlantSwitch DIRECTION_OUT_INITIALLY_LOW" + waterPlantSwitch.getValue());
     }
     public void stopWaterPlant() throws IOException {
-        if(waterPlantSwitchState == 0){
             waterPlantSwitch.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
-        }
+            Log.e(TAG, "waterPlantSwitch DIRECTION_OUT_INITIALLY_HIGH" + waterPlantSwitch.getValue());
     }
 
 }

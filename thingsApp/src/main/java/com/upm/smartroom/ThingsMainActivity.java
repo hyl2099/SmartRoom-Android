@@ -30,7 +30,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
-
 import com.google.android.gms.tasks.Task;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.GpioCallback;
@@ -48,7 +47,6 @@ import com.google.firebase.database.ServerValue;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
-//import com.gracecode.android.common.helper.UIHelper;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -63,30 +61,31 @@ import java.util.TimeZone;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.things.contrib.driver.bmx280.Bmx280SensorDriver;
+import com.upm.smartroom.board.BoardSpec;
 import com.upm.smartroom.doorbell.DoorbellMsgActivity;
 import com.upm.smartroom.plant.PlantMainActivity;
 import com.upm.smartroom.postData.PictureRESTAPIService;
+import com.upm.smartroom.postData.SpringPicture;
 import com.upm.smartroom.postData.SpringTemperature;
 import com.upm.smartroom.postData.TemperatureRESTAPIService;
 import com.upm.smartroom.state.AlarmState;
 import com.upm.smartroom.board.BoardDefaults;
 import com.upm.smartroom.doorbell.DoorbellCamera;
-import com.upm.smartroom.state.LockState;
 import com.upm.smartroom.state.RoomTemperature;
 import com.upm.smartroom.state.SwitchState;
 import com.upm.smartroom.weather.Weather;
 import com.upm.smartroom.weather.WeatherRESTAPIService;
 
 import org.json.JSONException;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-import retrofit2.http.Field;
-import retrofit2.http.FormUrlEncoded;
-import retrofit2.http.POST;
-
 
 
 
@@ -94,8 +93,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     private static final String TAG = ThingsMainActivity.class.getSimpleName();
     private static final String LOG_TAG = ThingsMainActivity.class.getSimpleName();
 
-
-    //data from API
+    //data from weather API
     private ImageView weatherImage;
     private TextView weatherTxt;
     private TextView currTemp;
@@ -103,54 +101,49 @@ public class ThingsMainActivity extends AppCompatActivity {
     private TextView maxTemp;
     private TextView humidity;
     private TextView wind;
-    //data from sensor
+    //data from sensor for view
     private ImageView bmp280Image;
     private TextView temperatureDisplay;
     private TextView barometerDisplay;
     private TextView timeTxt;
     private ViewGroup otherTxt;
     private TextView alarmTxt;
-    private TextView lockTxt;
     private TextView switchTxt;
     private Switch alarmSwitcher;
-    private Switch lockSwitcher;
     private Switch switchSwitcher;
 
 
     // btb Firebase database variables
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mAlarmDatabaseReference;
-    private DatabaseReference mLockDatabaseReference;
     private DatabaseReference mSwitchDatabaseReference;
     private DatabaseReference mRoomTempDatabaseReference;
     private FirebaseStorage mStorage;
     private ChildEventListener mChildEventAlarmListener;
-    private ChildEventListener mChildEventLockListener;
     private ChildEventListener mChildEventSwitchListener;
 
-
+    // doorbell
     private DoorbellCamera mCamera;
 
     //weather API
     private static final String WEATHER_API_BASE_URL = "https://api.openweathermap.org";
-    //Spring API
+    //Spring Temperature API
     private static final String SPRING_API_BASE_URL = "http://192.168.1.55:8080";
     private WeatherRESTAPIService apiService;
-    private PictureRESTAPIService pictureRESTAPIService;
     private TemperatureRESTAPIService temperatureRESTAPIService;
+    private PictureRESTAPIService pictureRESTAPIService;
+    private SpringTemperature springTemperature;
 
-
+    // buttons
     //Driver for the doorbell button GPIO2_IO05;
-    private ButtonInputDriver mButtonInputDriver;
-    //Alarm button GPIO2_IO07
+    private ButtonInputDriver mButtonCameraInputDriver;
+    //Driver for Alarm button GPIO2_IO07
     private ButtonInputDriver mButtonAlarmInputDriver;
     private int alarmState;
     private static final int ALARMON = 1;
     private static final int ALARMOFF = 0;
     //LED GPIO06_IO14
     private Gpio led;
-    //Red GPIO2_IO01//Green GPIO2_IO02//Blue GPIO2_IO00
-    private List<Gpio> rgbLed;
     //BMP280 for temperature and humidity
     private SensorManager mSensorManager;
     private Bmx280SensorDriver mEnvironmentalSensorDriver;
@@ -165,23 +158,22 @@ public class ThingsMainActivity extends AppCompatActivity {
     private static final int MSG_UPDATE_BAROMETER = 6;
     private static final int POST_DATA_TO_SPRING =7;
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
-    //speaker: active buzzer arduino
+
+    //speaker: active buzzer arduino GPI06_IO15
     private Gpio buzzerSpeaker;
+
+    //sendor movement GPI06_IO13
+    private Gpio movementSensor;
     //detect something moving
     private int somethingIsMoving;
     private  static final int SOMETHING_MOVING = 1;
     private  static final int NOTHING_MOVING = 0;
+    //TODO
     //electric switch
     private Gpio switcher;
     private int switchState;
     private static final int SWITCHON = 1;
     private static final int SWITCHOFF = 0;
-    //electronic lock
-    private Gpio locker;
-    private Gpio movementSensor;
-    private int lockState;
-    private static final int LOCKON = 1;
-    private static final int LOCKOFF = 0;
 
 
 
@@ -207,7 +199,6 @@ public class ThingsMainActivity extends AppCompatActivity {
 
 
     //////定义我的handler
-    //my handler
     public Handler mHandler;
     class Mhandler extends Handler {
         private int mBarometerImage = -1;
@@ -218,9 +209,9 @@ public class ThingsMainActivity extends AppCompatActivity {
                     //get weather data from API and update
                     obtenerInfo(findViewById(R.id.weatherTxt));
                     //update room temperature to mobile
-
                     break;
                 case 2:
+                    //the Clock on sreeen.
                     myTimer(findViewById(R.id.timeTxt));
                     break;
                 case 3:
@@ -233,14 +224,16 @@ public class ThingsMainActivity extends AppCompatActivity {
 //                    }
                     break;
                 case POST_DATA_TO_SPRING:
-                    try {
-                        postDataToSpring();
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                    break;
-                    //4
+                    // 7
+                    //post temperature data to spring every 10 mins.
+//                    try {
+//                        postDataToSpring();
+//                    } catch (JSONException e) {
+//                        e.printStackTrace();
+//                    }
+//                    break;
                 case MSG_UPDATE_BAROMETER_UI:
+                    //4
                     int img;
                     if (mLastPressure > BAROMETER_RANGE_SUNNY) {
                         img = R.drawable.ic_sunny;
@@ -254,15 +247,15 @@ public class ThingsMainActivity extends AppCompatActivity {
                         mBarometerImage = img;
                     }
                     break;
-                    //5
                 case MSG_UPDATE_TEMPERATURE:
+                    //5
                     temperatureDisplay.setText(DECIMAL_FORMAT.format(mLastTemperature));
                     Map<String, Object> childTemperatureUpdates = new HashMap<>();
                     childTemperatureUpdates.put("mLastTemperature", mLastTemperature);
                     mRoomTempDatabaseReference.updateChildren(childTemperatureUpdates);
                     break;
-                    //6
                 case MSG_UPDATE_BAROMETER:
+                    //6
                     barometerDisplay.setText(DECIMAL_FORMAT.format(mLastPressure*0.1));
                     Map<String, Object> childPressureUpdates = new HashMap<>();
                     childPressureUpdates.put("mLastPressure", mLastPressure);
@@ -271,6 +264,7 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         }
     }
+
     //thread for get API data from internet
     class MyThread implements Runnable {
         public void run() {
@@ -319,7 +313,7 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         }
     }
-
+    //thread for POST temperature to Sping server.
     class MyPostDataThread implements Runnable {
         public void run() {
             while (!Thread.currentThread().isInterrupted()) {
@@ -344,18 +338,11 @@ public class ThingsMainActivity extends AppCompatActivity {
                 // Our sensor is connected. Start receiving temperature data.
                 mSensorManager.registerListener(mTemperatureListener, sensor,
                         SensorManager.SENSOR_DELAY_NORMAL);
-                //if (mPubsubPublisher != null) {
-                //    mSensorManager.registerListener(mPubsubPublisher.getTemperatureListener(), sensor,
-                //            SensorManager.SENSOR_DELAY_NORMAL);
-                //}
             } else if (sensor.getType() == Sensor.TYPE_PRESSURE) {
                 // Our sensor is connected. Start receiving pressure data.
                 mSensorManager.registerListener(mPressureListener, sensor,
                         SensorManager.SENSOR_DELAY_NORMAL);
-                //if (mPubsubPublisher != null) {
-                //    mSensorManager.registerListener(mPubsubPublisher.getPressureListener(), sensor,
-                //            SensorManager.SENSOR_DELAY_NORMAL);
-                //}
+
             }
         }
         @Override
@@ -415,6 +402,9 @@ public class ThingsMainActivity extends AppCompatActivity {
     };
 
 
+
+
+
     ////////////////////////////////////////////////////////////////////////
     //////////////////////oncreate///////////////////////////////////////
     ///////////////////////////////////////////////////////////
@@ -439,10 +429,8 @@ public class ThingsMainActivity extends AppCompatActivity {
         timeTxt = (TextView) findViewById(R.id.timeTxt);
         otherTxt = findViewById(R.id.otherTxt);
         alarmTxt = (TextView) findViewById(R.id.alarmTxt);
-//        lockTxt = (TextView) findViewById(R.id.lockTxt);
         switchTxt = (TextView) findViewById(R.id.switchTxt);
         alarmSwitcher = (Switch)findViewById(R.id.alarmSwitch);
-//        lockSwitcher = (Switch)findViewById(R.id.lockSwitch);
         switchSwitcher = (Switch)findViewById(R.id.switchSwitcher);
 
         currTemp = (TextView) findViewById(R.id.currTemp);
@@ -464,36 +452,28 @@ public class ThingsMainActivity extends AppCompatActivity {
         }
 
 
-        // btb Get instance of Firebase database
+        // Get instance of Firebase database
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mStorage = FirebaseStorage.getInstance();
-        //reference of alarm , lock, switch state
-        //初始化时alarm，lock，switch状态根据数据库中数据来完成
+        //reference of alarm , switch state
+        //初始化时alarm，switch状态根据数据库中数据来完成
         mAlarmDatabaseReference = mFirebaseDatabase.getReference().child("alarmState");
+        //Alarm ON
         AlarmState nowAlarmState = new AlarmState("1");
         mAlarmDatabaseReference.setValue(nowAlarmState);
         alarmSwitcher.setChecked(true);
         somethingIsMoving = NOTHING_MOVING;
         alarmState = ALARMON;
         alarmTxt.setText("ALARM ON");
-
-
-
-        mLockDatabaseReference = mFirebaseDatabase.getReference().child("lockState");
-        LockState nowLockState = new LockState("0");
-        mLockDatabaseReference.setValue(nowLockState);
-//        lockSwitcher.setChecked(false);
-//        lockState = LOCKOFF;
-//        lockTxt.setText("LOCK OFF");
-
         mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("switchState");
+        //Switch OFF
         SwitchState nowSwitchState = new SwitchState("0");
         mSwitchDatabaseReference.setValue(nowSwitchState);
         switchSwitcher.setChecked(false);
         switchState = SWITCHOFF;
         switchTxt.setText("SWITCH OFF");
 
-        //温度湿度
+        //Temperature and Humidity
         mRoomTempDatabaseReference = mFirebaseDatabase.getReference().child("roomTemperature");
         RoomTemperature nowRoomTemperature = new RoomTemperature(mLastTemperature, mLastPressure);
         mRoomTempDatabaseReference.setValue(nowRoomTemperature);
@@ -502,7 +482,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         mCamera = DoorbellCamera.getInstance();
         mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
 
-        // Initialize the doorbell button driver
+        // Initialize the doorbell button driver, and other sensors
         initPIO();
 
         // Creates new handlers and associated threads for camera and networking operations.
@@ -524,7 +504,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         new Thread(new MyPostDataThread()).start();
 
         //initialize API
-        // btb added for retrofit for weather API
+        // added for retrofit for weather API
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(WEATHER_API_BASE_URL).addConverterFactory(GsonConverterFactory.create())
                 .build();
@@ -537,6 +517,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         pictureRESTAPIService = retrofitSpring.create(PictureRESTAPIService.class);
 
 
+        // Alarm and switch states
         alarmSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -554,22 +535,6 @@ public class ThingsMainActivity extends AppCompatActivity {
                 }
             }
         });
-//        lockSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
-//            @Override
-//            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-//                if(isChecked){
-//                    Map<String, Object> childUpdates = new HashMap<>();
-//                    childUpdates.put(mLockDatabaseReference.getKey(), "1");
-//                    mLockDatabaseReference.updateChildren(childUpdates);
-//                    Log.d(TAG, "switch check Lock is on!!!");
-//                }else {
-//                    Map<String, Object> childUpdates = new HashMap<>();
-//                    childUpdates.put(mLockDatabaseReference.getKey(), "0");
-//                    mLockDatabaseReference.updateChildren(childUpdates);
-//                    Log.d(TAG, "switch check Lock is off!!!");
-//                }
-//            }
-//        });
         switchSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -588,7 +553,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         });
 
 
-        // btb Listener will be called when changes were performed in DB
+        // Listener will be called when changes were performed in DB
         //监听实时数据库中alarm开关变化
         mChildEventAlarmListener = new ChildEventListener() {
             @Override
@@ -631,46 +596,6 @@ public class ThingsMainActivity extends AppCompatActivity {
             public void onCancelled(@NonNull DatabaseError databaseError) {}
         };
         mAlarmDatabaseReference.addChildEventListener(mChildEventAlarmListener);
-
-        mChildEventLockListener = new ChildEventListener() {
-            @Override
-            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
-            @Override
-            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                //if lock state in real time database changed, change alarmState in iMX7.
-                String rtLockState = (String) dataSnapshot.getValue();
-                if(rtLockState.equals("1")){
-                    lockState = LOCKON;
-                    if(!lockSwitcher.isChecked()){
-                        lockSwitcher.setChecked(true);
-                    }
-                    try {
-                        lockOn();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    Log.d(TAG, "Database lock is on!!!");
-                }else if(rtLockState.equals("0")){
-                    lockState = LOCKOFF;
-                    if(lockSwitcher.isChecked()){
-                        lockSwitcher.setChecked(true);
-                    }
-                    try {
-                        lockOff();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    Log.d(TAG, "Database lock is off!!!");
-                }
-            }
-            @Override
-            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
-            @Override
-            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {}
-        };
-        mLockDatabaseReference.addChildEventListener(mChildEventLockListener);
         mChildEventSwitchListener = new ChildEventListener() {
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
@@ -710,8 +635,6 @@ public class ThingsMainActivity extends AppCompatActivity {
             public void onCancelled(@NonNull DatabaseError databaseError) {}
         };
         mSwitchDatabaseReference.addChildEventListener(mChildEventSwitchListener);
-
-
     }
     ///////////////end of onCreate()///////////////////
     //////////////////////////////////////////////////
@@ -720,27 +643,34 @@ public class ThingsMainActivity extends AppCompatActivity {
 
     private void initPIO() {
         try {
+            //1,LED;2,CameraButton;3,AlarmButton;4,Buzzer
+            //5,sensor movement; 6,BPM280;7,switch;
+            //1................
             //LED 灯，接在GPIO6_IO14口。
             PeripheralManager pio = PeripheralManager.getInstance();
             led = pio.openGpio(BoardDefaults.getGPIOForLED());
             //开机不点亮LED灯
             led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-//            初始化 BMP280Sensor
-            mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
-//            try {
-//                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
-//                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
-//                mEnvironmentalSensorDriver.registerTemperatureSensor();
-//                mEnvironmentalSensorDriver.registerPressureSensor();
-//                Log.d(TAG, "Initialized I2C BMP280");
-//            } catch (IOException e) {
-//                throw new RuntimeException("Error initializing BMP280", e);
-//            }
+            //2................
+            //初始化camera按钮
+            mButtonCameraInputDriver = new ButtonInputDriver(
+                    BoardDefaults.getGPIOForCameraButton(),
+                    Button.LogicState.PRESSED_WHEN_LOW,
+                    KeyEvent.KEYCODE_ENTER);
+            mButtonCameraInputDriver.register();
+            //3............
+            //初始化alarm按钮。
+            mButtonAlarmInputDriver = new ButtonInputDriver(
+                    BoardDefaults.getGPIOForAlarmButton(),
+                    Button.LogicState.PRESSED_WHEN_LOW,
+                    KeyEvent.KEYCODE_0);
+            mButtonAlarmInputDriver.register();
+            //4.................
             //初始化buzzerSpeaker(Zumbado)
             PeripheralManager buzzerPio = PeripheralManager.getInstance();
             buzzerSpeaker = buzzerPio.openGpio(BoardDefaults.getGPIOForBuzzer());
             buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-            //speaker.play(5);
+            //5.............
             //初始化HC_SR501 motion sensor
             try {
                 movementSensor = buzzerPio.openGpio(BoardDefaults.getGPIOForMovementSensor());//Echo针脚
@@ -752,32 +682,28 @@ public class ThingsMainActivity extends AppCompatActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            //初始化electronic lock
-            locker = buzzerPio.openGpio(BoardDefaults.getGPIOForLocker());
-            locker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            //6....................
+//            初始化 BMP280Sensor
+            mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
+//            try {
+//                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
+//                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
+//                mEnvironmentalSensorDriver.registerTemperatureSensor();
+//                mEnvironmentalSensorDriver.registerPressureSensor();
+//                Log.d(TAG, "Initialized I2C BMP280");
+//            } catch (IOException e) {
+//                throw new RuntimeException("Error initializing BMP280", e);
+//            }
+            //7..................
             //初始化electric switch
             switcher = buzzerPio.openGpio(BoardDefaults.getGPIOForSwitcher());
             switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-
-            //初始化按钮
-            mButtonInputDriver = new ButtonInputDriver(
-                    BoardDefaults.getGPIOForButton(),
-                    Button.LogicState.PRESSED_WHEN_LOW,
-                    KeyEvent.KEYCODE_ENTER);
-            mButtonInputDriver.register();
-            //初始化alarm按钮。
-            mButtonAlarmInputDriver = new ButtonInputDriver(
-                    BoardDefaults.getGPIOForAlarmButton(),
-                    Button.LogicState.PRESSED_WHEN_LOW,
-                    KeyEvent.KEYCODE_0);
-            mButtonAlarmInputDriver.register();
         } catch (IOException e) {
-            mButtonInputDriver = null;
+            mButtonCameraInputDriver = null;
             mButtonAlarmInputDriver = null;
             Log.w(TAG, "Could not open GPIO pins", e);
         }
     }
-
 
     @Override
     public void onPause() {
@@ -791,13 +717,13 @@ public class ThingsMainActivity extends AppCompatActivity {
         mCamera.shutDown();
         mCameraThread.quitSafely();
         mCloudThread.quitSafely();
-
         try {
             led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             led.close();
             buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             buzzerSpeaker.close();
-            mButtonInputDriver.close();
+
+            mButtonCameraInputDriver.close();
             mButtonAlarmInputDriver.close();
         } catch (IOException e) {
             Log.e(TAG, "button driver error", e);
@@ -816,7 +742,7 @@ public class ThingsMainActivity extends AppCompatActivity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_ENTER) {
+        if (keyCode == KeyEvent.KEYCODE_ENTER) { //for camera button
             //Log.d(TAG, "button pressed now");
             try {
                 led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
@@ -824,7 +750,7 @@ public class ThingsMainActivity extends AppCompatActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }else if (keyCode == KeyEvent.KEYCODE_0) {
+        }else if (keyCode == KeyEvent.KEYCODE_0) { //for alarm button
             //Log.d(TAG, "Alarm pressed now!!!");
             try {
                 led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
@@ -839,7 +765,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     ////按按钮后的响应
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_ENTER) {
+        if (keyCode == KeyEvent.KEYCODE_ENTER) { //for camera button
             // Doorbell rang!
             Log.d(TAG, "Door bell button pressed");
             mCamera.takePicture();
@@ -850,7 +776,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
             return true;
-        }else if (keyCode == KeyEvent.KEYCODE_0) {
+        }else if (keyCode == KeyEvent.KEYCODE_0) { //for alarm button
             Log.d(TAG, "Alarm button pressed!!!");
             try {
                 led.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
@@ -858,6 +784,7 @@ public class ThingsMainActivity extends AppCompatActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            //turn on od off alarm
             if(alarmState == ALARMOFF){
                 alarmState = ALARMON;
                 //change real time database alarm state
@@ -881,9 +808,7 @@ public class ThingsMainActivity extends AppCompatActivity {
     }
 
     /////////////////////////摄像头代码////////////////
-    /**
-     * Listener for new camera images.
-     */
+    //Listener for new camera images.
     private ImageReader.OnImageAvailableListener mOnImageAvailableListener =
             new ImageReader.OnImageAvailableListener() {
                 @Override
@@ -897,10 +822,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                     onPictureTaken(imageBytes);
                 }
             };
-
-    /**
-     * Upload image data to Firebase as a doorbell event.
-     */
+    //Upload image data to Firebase as a doorbell event.
     private void onPictureTaken(final byte[] imageBytes) {
         if (imageBytes != null) {
             final StorageReference imageRef;
@@ -914,8 +836,6 @@ public class ThingsMainActivity extends AppCompatActivity {
                 //image存入storage
                 imageRef = mStorage.getReference().child(doorbellRecord.getKey());
             }
-
-
             // upload image to storage
             UploadTask task = imageRef.putBytes(imageBytes);
             task.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
@@ -945,7 +865,36 @@ public class ThingsMainActivity extends AppCompatActivity {
                     doorbellRecord.removeValue();
                 }
             });
+
+            // upload image to my Spring server
+            //二，将图片上传到本地Spring后端
+            //imageBytes 图片byte[]文件
+            //owner
+            RequestBody owner = RequestBody.create(null, "owner");
+            //remark
+            RequestBody remark = RequestBody.create(null, "remark");
+            //file
+            MultipartBody.Part file = toMultiPartFile(imageBytes);
+            pictureRESTAPIService.addPhoto(file,owner,remark).enqueue(new Callback<SpringPicture>() {
+                @Override
+                public void onResponse(Call<SpringPicture> call, Response<SpringPicture> response) {
+                    if(response.isSuccessful()) {
+                        Log.i(TAG, "post picture  OK.");
+                    }
+                }
+                @Override
+                public void onFailure(Call<SpringPicture> call, Throwable t) {
+                    Log.e(TAG, "Unable to submit post picture to API.");
+                }
+            });
         }
+    }
+
+    public static MultipartBody.Part toMultiPartFile(byte[] byteArray) {
+        RequestBody reqFile = RequestBody.create(MediaType.parse("image/jpeg"), byteArray);
+        return MultipartBody.Part.createFormData("file",
+                "doorbell", // filename, this is optional
+                reqFile);
     }
 
     /**
@@ -959,7 +908,7 @@ public class ThingsMainActivity extends AppCompatActivity {
                 // annotate image by uploading to Cloud Vision API
                 try {
                     Map<String, Float> annotations = CloudVisionUtils.annotateImage(imageBytes);
-                    Log.d(TAG, "cloud vision annotations:" + annotations);
+//                    Log.d(TAG, "cloud vision annotations:" + annotations);
                     if (annotations != null) {
                         ref.child("annotations").setValue(annotations);
                     }
@@ -969,9 +918,9 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         });
     }
-    /////////////////////摄像头代码////////////////
+    /////////////////////摄像头代码结束////////////////
 
-    ////initial menu
+    //////////initial menu
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
@@ -1016,18 +965,17 @@ public class ThingsMainActivity extends AppCompatActivity {
         humidity.setText("");
         wind.setText("");
         Call<Weather> call_async = apiService.getTempByCityName();
-        Log.i(LOG_TAG, "getTempByCityName:" + apiService.getTempByCityName());
+//        Log.i(LOG_TAG, "getTempByCityName:" + apiService.getTempByCityName());
         // Asíncrona
         call_async.enqueue(new Callback<Weather>() {
             @SuppressLint("ResourceAsColor")
             @Override
             public void onResponse(Call<Weather> call, Response<Weather> response) {
                 Weather weather = response.body();
-                Log.i(LOG_TAG, "weather:" + weather);
+//                Log.i(LOG_TAG, "weather:" + weather);
                 int dataListNum = 0;
                 if (null != weather) {
-                    Log.i(LOG_TAG, "getWeatherInfo:" + weather);
-
+//                    Log.i(LOG_TAG, "getWeatherInfo:" + weather);
                     weatherTxt.append(weather.getWeather().get(0).getMain()+"   (");
                     weatherTxt.append(weather.getWeather().get(0).getDescription()+ ")");
                     DecimalFormat df = new DecimalFormat("#.0");
@@ -1036,7 +984,6 @@ public class ThingsMainActivity extends AppCompatActivity {
                     maxTemp.append(df.format(weather.getMain().getTemp_max()-273.15));
                     humidity.append(weather.getMain().getHumidity().toString());
                     wind.append(weather.getWind().getSpeed().toString());
-
                     /////////////////show icon of weather:
                     String icon = weather.getWeather().get(0).getIcon();
                     if (icon.contains("01d")){
@@ -1114,9 +1061,10 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         });
     }
-    ///////get info from weather API
+    ///////get info from weather API finish/////////
 
-    ////////////BPM280 sensor
+
+    ////////////BPM280 sensor///////
     private void updateBarometerDisplay(float pressure) {
         // Update UI.
         if (!mHandler.hasMessages(MSG_UPDATE_BAROMETER)) {
@@ -1129,19 +1077,17 @@ public class ThingsMainActivity extends AppCompatActivity {
             mHandler.sendEmptyMessageDelayed(MSG_UPDATE_TEMPERATURE, 1000);
         }
     }
-
     private void updateBarometer(float pressure) {
         // Update UI.
         if (!mHandler.hasMessages(MSG_UPDATE_BAROMETER_UI)) {
             mHandler.sendEmptyMessageDelayed(MSG_UPDATE_BAROMETER_UI, 1000);
         }
     }
-
     //update room temperature to mobile
     private void updateRoomTemperature(){
 
     }
-    /////////////BPM280 sensor
+    /////////////BPM280 sensor finish/////////
 
 
     private void startBuzzerAlarm() throws IOException {
@@ -1181,23 +1127,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         Log.d(TAG, "Alarm State OFF!!!");
         buzzerSpeaker.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
     }
-    private void startLockOn() throws IOException {
-        if(lockState == LOCKON){
-            lockOn();
-            lockTxt.setText("Locker ON");
-            Log.d(TAG, "Lock is ON!!!");
-        }else if(lockState == LOCKOFF){
-            lockOff();
-            lockTxt.setText("Locker OFF");
-            //Log.d(TAG, "Lock is OFF!!!");
-        }
-    }
-    private void lockOn() throws IOException {
-        switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
-    }
-    private void lockOff() throws IOException {
-        switcher.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-    }
+
     private void startSwitchOn() throws IOException {
         if(switchState ==SWITCHON){
             switchOn();
@@ -1224,10 +1154,7 @@ public class ThingsMainActivity extends AppCompatActivity {
         }
     }
 
-
-    private SpringTemperature getTemperatureFromWeb(){
-        final float[] outdoorTemperature = new float[1];
-        final float[] outdoorHumidity = new float[1];
+    private void postDataToSpring() throws JSONException {
         Call<Weather> call_async = apiService.getTempByCityName();
         call_async.enqueue(new Callback<Weather>() {
             @SuppressLint("ResourceAsColor")
@@ -1235,50 +1162,23 @@ public class ThingsMainActivity extends AppCompatActivity {
             public void onResponse(Call<Weather> call, Response<Weather> response) {
                 Weather weather = response.body();
                 DecimalFormat df = new DecimalFormat("#.0");
-                outdoorTemperature[0] = (float)(weather.getMain().getTemp()-273.15);
-                outdoorHumidity[0] = weather.getMain().getHumidity().floatValue();
-//                String outdoorTemperature = df.format(weather.getMain().getTemp()-273.15);
-//                String outdoorHumidity = weather.getMain().getHumidity().toString();
+                Float outdoorTemperature = (float)(weather.getMain().getTemp()-273.15);
+                Float outdoorHumidity = weather.getMain().getHumidity().floatValue();
+                Float indoorTemperature = mLastTemperature;
+                Float indoorHumidity = (float)(mLastPressure*0.1);
+                String t1 = getNowTimeFormat();
+                springTemperature  = new SpringTemperature(indoorTemperature,indoorHumidity,outdoorTemperature,outdoorHumidity,t1);
+                sendTemperaturePost(springTemperature);
+                Log.i(LOG_TAG, "Add temperature");
             }
             @Override
             public void onFailure(Call<Weather> call, Throwable throwable) {
 
             }
         });
-//        String indoorTemperature = DECIMAL_FORMAT.format(mLastTemperature);
-        Float indoorTemperature = mLastTemperature;
-//        String indoorHumidity = DECIMAL_FORMAT.format(mLastPressure*0.1);
-        Float indoorHumidity = (float)(mLastPressure*0.1);
-
-        long time=System.currentTimeMillis();//long now = android.os.SystemClock.uptimeMillis();
-        SimpleDateFormat format=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date d1=new Date(time);
-        String t1=format.format(d1);
-
-        SpringTemperature t = new SpringTemperature(indoorTemperature,indoorHumidity,outdoorTemperature[0],outdoorHumidity[0],t1);
-        return t;
     }
 
-
-    private void postDataToSpring() throws JSONException {
-        SpringTemperature t = getTemperatureFromWeb();
-        sendTemperaturePost(t);
-        //sendTempPost(t.getTemperatureIndoor(),t.getHumidityIndoor(),t.getTemperatureOutdoor(),t.getHumidityOutdoor(),t.getTime());
-        //getTemp();
-
-//        JSONObject temperatureData = new JSONObject();
-//        temperatureData.put("temperatureIndoor", indoorTemperature);
-//        temperatureData.put("humidityIndoor", indoorHumidity);
-//        temperatureData.put("temperatureOutdoor", "0");
-//        temperatureData.put("humidityOutdoor", "0");
-//        temperatureData.put("time", (new Date()).toString());
-
-//        RequestBody temperature = RequestBody.create(MediaType.parse("application/json"), String.valueOf(temperatureData));
-//        temperatureRESTAPIService.addTemperature(temperature);
-        Log.i(LOG_TAG, "Add temperature");
-    }
-
-    public void getTemp(){
+    public void getTempFromSpring(){
         Call<List<SpringTemperature>> call_async = temperatureRESTAPIService.readTemperatureAll();
         call_async.enqueue(new Callback<List<SpringTemperature>>() {
             @Override
@@ -1286,36 +1186,15 @@ public class ThingsMainActivity extends AppCompatActivity {
                 List<SpringTemperature> t = response.body();
                 Log.e(TAG, "get  temperature from API." + t.get(0).getTemperatureOutdoor() + t.get(0).getHumidityOutdoor());
             }
-
             @Override
             public void onFailure(Call<List<SpringTemperature>> call, Throwable t) {
                 Log.e(TAG, "Unable to get  temperature from API.");
             }
-
-
         });
     }
-
-    public void sendTempPost(Float temperatureIndoor,Float humidityIndoor,
-                             Float temperatureOutdoor, Float humidityOutdoor,Date time){
-        temperatureRESTAPIService.saveTemp(temperatureIndoor,humidityIndoor,
-                temperatureOutdoor,humidityOutdoor,time).enqueue(new Callback<SpringTemperature>() {
-            @Override
-            public void onResponse(Call<SpringTemperature> call, Response<SpringTemperature> response) {
-                if(response.isSuccessful()) {
-                    //showResponse(response.body().toString());
-                    Log.i(TAG, "post temperature OK." + response.body().toString());
-                }
-            }
-            @Override
-            public void onFailure(Call<SpringTemperature> call, Throwable t) {
-                Log.e(TAG, "Unable to submit post temperature to API.");
-            }
-        });
-    }
-
 
     public void sendTemperaturePost(SpringTemperature t) {
+        //笔记：
         //temperatureRESTAPIService (APIService 接口的实例) saveTemperature方法会返回一个Call 对象, 这个对象有个enqueue(Callback callback) 方法.
         //enqueue() 异步地发送请求, 然后当响应回来的时候, 使用回调的方式通知你的APP. 因为这个请求是异步的, Retrofit 使用一个另外的线程去执行它, 这样UI 线程就不会被阻塞了.
         //要使用enqueue() 方法, 你需要实现两个回调方法: onResponse() 和onFailure(). 对于一个请求, 当响应回来的时候, 只有一个方法会被执行.
@@ -1338,6 +1217,14 @@ public class ThingsMainActivity extends AppCompatActivity {
 
     public void showResponse(String response) {
        //TODO
+    }
+
+    private String getNowTimeFormat(){
+        Long time=System.currentTimeMillis();//long now = android.os.SystemClock.uptimeMillis();
+        SimpleDateFormat format=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date d1=new Date(time);
+        String t1=format.format(d1);
+        return t1;
     }
 
 }

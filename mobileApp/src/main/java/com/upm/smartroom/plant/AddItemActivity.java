@@ -211,8 +211,6 @@ public class AddItemActivity extends Activity implements View.OnClickListener {
                         plants.child("name").setValue(plantName);
                         plants.child("humidityNeed").setValue(humidityNeed);
                         plants.child("image").setValue(downloadUrl.toString());
-                        // process image annotations
-//                        annotateImage(log, imageBytes);
                     }
                 });
             }

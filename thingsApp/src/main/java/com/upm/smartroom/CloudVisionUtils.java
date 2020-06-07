@@ -102,7 +102,7 @@ public class CloudVisionUtils {
             }
         }
 
-        Log.d(TAG, "Cloud Vision request completed:" + annotations);
+//        Log.d(TAG, "Cloud Vision request completed:" + annotations);
         return annotations;
     }
 }

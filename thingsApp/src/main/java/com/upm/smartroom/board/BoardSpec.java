@@ -78,6 +78,7 @@ public class BoardSpec {
         return BoardSpec.getInstance().getPwm(1);
     }
 
+    //used for BPM280
     public static String getI2cBus() {
         String s = BoardSpec.getInstance().i2c;
         if (s!=null)

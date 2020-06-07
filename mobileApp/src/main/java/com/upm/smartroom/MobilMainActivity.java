@@ -35,7 +35,6 @@ public class MobilMainActivity extends AppCompatActivity {
 
     private static final String TAG = MobilMainActivity.class.getSimpleName();
     private Switch alarmSwitcher;
-    private Switch lockSwitcher;
     private Switch switchSwitcher;
 
     private TextView temperatureDisplay;
@@ -44,12 +43,10 @@ public class MobilMainActivity extends AppCompatActivity {
     // btb Firebase database variables
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mAlarmDatabaseReference;
-    private DatabaseReference mLockDatabaseReference;
     private DatabaseReference mSwitchDatabaseReference;
     private DatabaseReference mRoomTempDatabaseReference;
     private FirebaseStorage mStorage;
     private ChildEventListener mChildEventAlarmListener;
-    private ChildEventListener mChildEventLockListener;
     private ChildEventListener mChildEventSwitchListener;
     private ChildEventListener mChildEventRoomTempListener;
 
@@ -61,9 +58,6 @@ public class MobilMainActivity extends AppCompatActivity {
     private int switchState;
     private static final int SWITCHON = 1;
     private static final int SWITCHOFF = 0;
-    private int lockState;
-    private static final int LOCKON = 1;
-    private static final int LOCKOFF = 0;
 
 
     public void onCreate(Bundle savedInstanceState) {
@@ -76,7 +70,6 @@ public class MobilMainActivity extends AppCompatActivity {
         mStorage = FirebaseStorage.getInstance();
         //reference of alarm state
         mAlarmDatabaseReference = mFirebaseDatabase.getReference().child("alarmState");
-        mLockDatabaseReference = mFirebaseDatabase.getReference().child("lockState");
         mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("switchState");
         mRoomTempDatabaseReference = mFirebaseDatabase.getReference().child("roomTemperature");
         //
@@ -86,7 +79,6 @@ public class MobilMainActivity extends AppCompatActivity {
         barometerDisplay.setText("-");
 
         alarmSwitcher = (Switch)findViewById(R.id.alarmSwitch);
-//        lockSwitcher = (Switch)findViewById(R.id.lockSwitch);
         switchSwitcher = (Switch)findViewById(R.id.switchSwitcher);
 
         alarmSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
@@ -103,22 +95,6 @@ public class MobilMainActivity extends AppCompatActivity {
                     childUpdates.put(mAlarmDatabaseReference.getKey(), "0");
                     mAlarmDatabaseReference.updateChildren(childUpdates);
                     Log.d(TAG, "switch check  Alarm is off!!!");
-                }
-            }
-        });
-        lockSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked){
-                    Map<String, Object> childUpdates = new HashMap<>();
-                    childUpdates.put(mLockDatabaseReference.getKey(), "1");
-                    mLockDatabaseReference.updateChildren(childUpdates);
-                    Log.d(TAG, "switch check Lock is on!!!");
-                }else {
-                    Map<String, Object> childUpdates = new HashMap<>();
-                    childUpdates.put(mLockDatabaseReference.getKey(), "0");
-                    mLockDatabaseReference.updateChildren(childUpdates);
-                    Log.d(TAG, "switch check Lock is off!!!");
                 }
             }
         });
@@ -174,37 +150,6 @@ public class MobilMainActivity extends AppCompatActivity {
             public void onCancelled(@NonNull DatabaseError databaseError) {}
         };
         mAlarmDatabaseReference.addChildEventListener(mChildEventAlarmListener);
-
-        mChildEventLockListener = new ChildEventListener() {
-            @Override
-            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
-            @Override
-            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                //if alarm state in real time database changed, change alarmState in iMX7.
-                String rtLockState = (String) dataSnapshot.getValue();
-                assert rtLockState != null;
-                if(rtLockState.equals("1")){
-                    lockState = LOCKON;
-                    if(!lockSwitcher.isChecked()){
-                        lockSwitcher.setChecked(true);
-                    }
-                    Log.d(TAG, "Database lock is on!!!");
-                }else if(rtLockState.equals("0")){
-                    lockState = LOCKOFF;
-                    if(lockSwitcher.isChecked()){
-                        lockSwitcher.setChecked(true);
-                    }
-                    Log.d(TAG, "Database lock is off!!!");
-                }
-            }
-            @Override
-            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
-            @Override
-            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {}
-        };
-        mLockDatabaseReference.addChildEventListener(mChildEventLockListener);
         mChildEventSwitchListener = new ChildEventListener() {
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}

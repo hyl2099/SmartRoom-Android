@@ -1,14 +1,11 @@
 package com.upm.smartroom.plant;
 
 import android.content.Context;
-import android.text.TextUtils;
-import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -24,10 +21,6 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.upm.smartroom.GlideApp;
 import com.upm.smartroom.R;
-import com.upm.smartroom.doorbell.DoorbellEntry;
-import com.upm.smartroom.doorbell.DoorbellEntryAdapter;
-
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 

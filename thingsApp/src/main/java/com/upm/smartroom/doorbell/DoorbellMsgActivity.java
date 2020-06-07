@@ -17,6 +17,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.upm.smartroom.R;
 import com.upm.smartroom.ThingsMainActivity;
 
+//本类是写的显示所有门铃图片的页面（）jin仅从firebase中获取并显示
 public class DoorbellMsgActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 

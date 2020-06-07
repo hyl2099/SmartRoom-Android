@@ -26,6 +26,7 @@ import static androidx.recyclerview.widget.RecyclerView.ViewHolder;
 /**
  * RecyclerView adapter to populate doorbell entries from Firebase.
  */
+//本类为DoorbellMsgActivity提供Adapter适配器
 //Firebase UI为RecyclerView量身定制了一个适配器FirebaseRecyclerAdapter。
 public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry, DoorbellEntryAdapter.DoorbellEntryViewHolder> {
 

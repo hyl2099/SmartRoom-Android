@@ -20,6 +20,7 @@ import java.util.Map;
 /**
  * Model class for Firebase data entries
  */
+//本类定义图片
 public class DoorbellEntry {
 
     Long timestamp;

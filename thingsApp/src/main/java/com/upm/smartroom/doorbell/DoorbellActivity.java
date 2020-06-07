@@ -7,6 +7,7 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
@@ -29,10 +30,26 @@ import com.google.firebase.database.ServerValue;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.upm.smartroom.postData.PictureRESTAPIService;
+import com.upm.smartroom.postData.SpringPicture;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * Doorbell activity that capture a picture from an Android Things
@@ -45,6 +62,10 @@ public class DoorbellActivity extends Activity {
     private FirebaseDatabase mDatabase;
     private FirebaseStorage mStorage;
     private DoorbellCamera mCamera;
+
+    //API
+    private static final String SPRING_API_BASE_URL = "http://192.168.1.55:8080";
+    private PictureRESTAPIService pictureRESTAPIService;
 
     /**
      * Driver for the doorbell button;
@@ -85,9 +106,15 @@ public class DoorbellActivity extends Activity {
             Log.e(TAG, "No permission");
             return;
         }
-
+        // Firebase
         mDatabase = FirebaseDatabase.getInstance();
         mStorage = FirebaseStorage.getInstance();
+
+        //Spring API
+        Retrofit retrofitSpring = new Retrofit.Builder()
+                .baseUrl(SPRING_API_BASE_URL).addConverterFactory(GsonConverterFactory.create())
+                .build();
+        pictureRESTAPIService = retrofitSpring.create(PictureRESTAPIService.class);
 
         // Creates new handlers and associated threads for camera and networking operations.
         mCameraThread = new HandlerThread("CameraBackground");
@@ -116,7 +143,7 @@ public class DoorbellActivity extends Activity {
 
             //初始化按钮
             mButtonInputDriver = new ButtonInputDriver(
-                    BoardDefaults.getGPIOForButton(),
+                    BoardDefaults.getGPIOForCameraButton(),
                     Button.LogicState.PRESSED_WHEN_LOW,
                     KeyEvent.KEYCODE_ENTER);
             mButtonInputDriver.register();
@@ -180,7 +207,8 @@ public class DoorbellActivity extends Activity {
             //image存入storage
             final StorageReference imageRef = mStorage.getReference("doorbell").child(doorbell.getKey());
 
-            // upload image to storage
+            // upload image to firebase storage
+            //一，将图片上传到firebase
             UploadTask task = imageRef.putBytes(imageBytes);
             task.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                 @Override
@@ -209,6 +237,28 @@ public class DoorbellActivity extends Activity {
                     doorbell.removeValue();
                 }
             });
+
+            // upload image to my Spring server
+            //二，将图片上传到本地Spring后端
+            //imageBytes 图片byte[]文件
+            //owner
+            RequestBody owner = RequestBody.create(null, "owner");
+            //remark
+            RequestBody remark = RequestBody.create(null, "remark");
+            //file
+            MultipartBody.Part file = toMultiPartFile(imageBytes);
+            pictureRESTAPIService.addPhoto(file,owner,remark).enqueue(new Callback<SpringPicture>() {
+                @Override
+                public void onResponse(Call<SpringPicture> call, Response<SpringPicture> response) {
+                    if(response.isSuccessful()) {
+                        Log.i(TAG, "post picture  OK.");
+                    }
+                }
+                @Override
+                public void onFailure(Call<SpringPicture> call, Throwable t) {
+                    Log.e(TAG, "Unable to submit post picture to API.");
+                }
+            });
         }
     }
 
@@ -233,4 +283,12 @@ public class DoorbellActivity extends Activity {
             }
         });
     }
+
+    public static MultipartBody.Part toMultiPartFile(byte[] byteArray) {
+        RequestBody reqFile = RequestBody.create(MediaType.parse("image/jpeg"), byteArray);
+        return MultipartBody.Part.createFormData("file",
+                "doorbell", // filename, this is optional
+                reqFile);
+    }
+
 }

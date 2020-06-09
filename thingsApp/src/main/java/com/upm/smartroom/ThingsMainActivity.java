@@ -469,15 +469,15 @@ public class ThingsMainActivity extends AppCompatActivity {
         //reference of alarm , switch state
         //初始化时alarm，switch状态根据数据库中数据来完成
         mAlarmDatabaseReference = mFirebaseDatabase.getReference().child("alarmState");
-        //Alarm ON
-        AlarmState nowAlarmState = new AlarmState("1");
+        //Alarm OFF
+        AlarmState nowAlarmState = new AlarmState("0");
         mAlarmDatabaseReference.setValue(nowAlarmState);
-        alarmSwitcher.setChecked(true);
+        alarmSwitcher.setChecked(false);
         somethingIsMoving = NOTHING_MOVING;
         alarmState = ALARMON;
         alarmTxt.setText("ALARM ON");
         //light switch
-        mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("LightSwitchState");
+        mSwitchDatabaseReference = mFirebaseDatabase.getReference().child("switchState");
         //Light Switch OFF
         SwitchState nowSwitchState = new SwitchState("0");
         mSwitchDatabaseReference.setValue(nowSwitchState);
@@ -558,19 +558,33 @@ public class ThingsMainActivity extends AppCompatActivity {
                     Map<String, Object> childUpdates = new HashMap<>();
                     childUpdates.put(mSwitchDatabaseReference.getKey(), "1");
                     mSwitchDatabaseReference.updateChildren(childUpdates);
+                    switchTxt.setText("SWITCH ON");
+                    switchSwitcher.setChecked(true);
+                    try {
+                        switchOn();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     Log.d(TAG, "switch check Switch is on!!!");
                 }else {
                     Map<String, Object> childUpdates = new HashMap<>();
                     childUpdates.put(mSwitchDatabaseReference.getKey(), "0");
                     mSwitchDatabaseReference.updateChildren(childUpdates);
+                    switchTxt.setText("SWITCH OFF");
+                    switchSwitcher.setChecked(false);
+                    try {
+                        switchOff();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     Log.d(TAG, "switch check Switch is off!!!");
                 }
             }
         });
 
 
-        // Listener will be called when changes were performed in DB
-        //监听实时数据库中alarm开关变化
+//        // Listener will be called when changes were performed in DB
+//        //监听实时数据库中alarm开关变化
         mChildEventAlarmListener = new ChildEventListener() {
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
@@ -623,23 +637,25 @@ public class ThingsMainActivity extends AppCompatActivity {
                     LightSwitchState = SWITCHON;
                     if(!switchSwitcher.isChecked()){
                         switchSwitcher.setChecked(true);
+                        try {
+                            switchOn();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
-                    try {
-                        switchOn();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+
                     Log.d(TAG, "Database switch is on!!!");
                 }else if(rtSwitchState.equals("0")){
                     LightSwitchState = SWITCHOFF;
                     if(switchSwitcher.isChecked()){
                         switchSwitcher.setChecked(false);
+                        try {
+                            switchOff();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
-                    try {
-                        switchOff();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+
                     Log.d(TAG, "Database switch is off!!!");
                 }
             }
@@ -748,15 +764,15 @@ public class ThingsMainActivity extends AppCompatActivity {
             //6....................
 //            初始化 BMP280Sensor
             mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
-            try {
-                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
-                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
-                mEnvironmentalSensorDriver.registerTemperatureSensor();
-                mEnvironmentalSensorDriver.registerPressureSensor();
-                Log.d(TAG, "Initialized I2C BMP280");
-            } catch (IOException e) {
-                throw new RuntimeException("Error initializing BMP280", e);
-            }
+//            try {
+//                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
+//                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
+//                mEnvironmentalSensorDriver.registerTemperatureSensor();
+//                mEnvironmentalSensorDriver.registerPressureSensor();
+//                Log.d(TAG, "Initialized I2C BMP280");
+//            } catch (IOException e) {
+//                throw new RuntimeException("Error initializing BMP280", e);
+//            }
             //7..................
             //初始化electric switch to water plants
             PeripheralManager waterSwitchPio = PeripheralManager.getInstance();

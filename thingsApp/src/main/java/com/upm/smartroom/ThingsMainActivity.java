@@ -670,7 +670,6 @@ public class ThingsMainActivity extends AppCompatActivity {
                     // in here, childSnapshot.getKey() should return "test1",
                     // then "test2", depending on the loop count.
                     // and childSnapshot.getValue() should return "2"
-
                 }
                 
                 if(rtWaterPlantSwitchState.equals("1")){
@@ -749,15 +748,15 @@ public class ThingsMainActivity extends AppCompatActivity {
             //6....................
 //            初始化 BMP280Sensor
             mSensorManager = ((SensorManager) getSystemService(SENSOR_SERVICE));
-//            try {
-//                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
-//                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
-//                mEnvironmentalSensorDriver.registerTemperatureSensor();
-//                mEnvironmentalSensorDriver.registerPressureSensor();
-//                Log.d(TAG, "Initialized I2C BMP280");
-//            } catch (IOException e) {
-//                throw new RuntimeException("Error initializing BMP280", e);
-//            }
+            try {
+                mEnvironmentalSensorDriver = new Bmx280SensorDriver(BoardSpec.getI2cBus());
+                mSensorManager.registerDynamicSensorCallback(mDynamicSensorCallback);
+                mEnvironmentalSensorDriver.registerTemperatureSensor();
+                mEnvironmentalSensorDriver.registerPressureSensor();
+                Log.d(TAG, "Initialized I2C BMP280");
+            } catch (IOException e) {
+                throw new RuntimeException("Error initializing BMP280", e);
+            }
             //7..................
             //初始化electric switch to water plants
             PeripheralManager waterSwitchPio = PeripheralManager.getInstance();
@@ -803,6 +802,19 @@ public class ThingsMainActivity extends AppCompatActivity {
             }
         }
         movementSensor.unregisterGpioCallback(mMoveSensorCallback);
+        // Clean up sensor registrations
+        mSensorManager.unregisterListener(mTemperatureListener);
+        mSensorManager.unregisterListener(mPressureListener);
+        mSensorManager.unregisterDynamicSensorCallback(mDynamicSensorCallback);
+        // Clean up peripheral.
+        if (mEnvironmentalSensorDriver != null) {
+            try {
+                mEnvironmentalSensorDriver.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            mEnvironmentalSensorDriver = null;
+        }
     }
 
     @Override

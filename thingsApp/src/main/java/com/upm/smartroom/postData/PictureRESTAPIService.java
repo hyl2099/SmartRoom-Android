@@ -14,10 +14,6 @@ import retrofit2.http.Part;
 
 public interface PictureRESTAPIService {
     //此处如果后台接受的是Picture类对象，可以用一个Map把对象传过去。不过我已经单独写了个只接受from-data类型的API
-    //Call<ResponseBody> addFile(@PartMap Map<String,String> params,@Part MultipartBody.Part file);
-//    @Headers({
-//            "content-type: multipart/form-data"
-//    })
 
     @Multipart
     @POST("pictures/addPhoto")

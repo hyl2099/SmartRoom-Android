@@ -1,15 +1,15 @@
-# Cloud Doorbell
+# Smart Room
 
+# doorbell
 The Android Things Doorbell sample demonstrates how to create a “smart” doorbell.
 The sample captures a button press from a user, obtains an image via a camera peripheral,
 processes the image data using Google’s Cloud Vision API, and uploads the image, Cloud Vision
 annotations and metadata to a Firebase database where it can be viewed by a companion app.
 
-## Screenshots
+## How camera works
 
-![Doorbell sample demo][demo-gif]
+![Smart Room][demo-gif]
 
-[(Watch the demo on YouTube)][demo-yt]
 
 ## Schematics
 
@@ -105,24 +105,6 @@ add the following `intent-filter` to the app's manifest file:
 </activity>
 ```
 
-## License
 
-Copyright 2016 The Android Open Source Project, Inc.
 
-Licensed to the Apache Software Foundation (ASF) under one or more contributor
-license agreements.  See the NOTICE file distributed with this work for
-additional information regarding copyright ownership.  The ASF licenses this
-file to you under the Apache License, Version 2.0 (the "License"); you may not
-use this file except in compliance with the License.  You may obtain a copy of
-the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
-License for the specific language governing permissions and limitations under
-the License.
-
-[demo-yt]: https://www.youtube.com/watch?v=lCdlz7tk_oI&list=PLWz5rJ2EKKc-GjpNkFe9q3DhE2voJscDT&index=1
 [demo-gif]: camera.gif

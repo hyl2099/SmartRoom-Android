@@ -13,7 +13,7 @@ annotations and metadata to a Firebase database where it can be viewed by a comp
 
 ## Schematics
 
-![Schematics](schematics.png)
+![Schematics](schematics-all.png)
 
 ## Pre-requisites
 
@@ -125,4 +125,4 @@ License for the specific language governing permissions and limitations under
 the License.
 
 [demo-yt]: https://www.youtube.com/watch?v=lCdlz7tk_oI&list=PLWz5rJ2EKKc-GjpNkFe9q3DhE2voJscDT&index=1
-[demo-gif]: demo1.gif
+[demo-gif]: camera.gif

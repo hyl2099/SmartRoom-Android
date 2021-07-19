@@ -1,5 +1,7 @@
 # Smart Room
 
+
+
 # doorbell
 The Android Things Doorbell sample demonstrates how to create a “smart” doorbell.
 The sample captures a button press from a user, obtains an image via a camera peripheral,

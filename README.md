@@ -1,6 +1,7 @@
 # Smart Room
 
 
+![Smart Room][111.png]
 
 # doorbell
 The Android Things Doorbell sample demonstrates how to create a “smart” doorbell.
